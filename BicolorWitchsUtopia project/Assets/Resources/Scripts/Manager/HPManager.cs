@@ -1,69 +1,13 @@
 using UnityEngine;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using BicolorWitch.Player;
+using BicolorWitch.UI;
+using BicolorWitch.Core;
 
 namespace BicolorWitch.Game
 {
-    /// <summary>
-    /// HP管理機能を提供するインターフェース。
-    /// HPManagerが実装することを想定。
-    /// </summary>
-    public interface IHPManager
-    {
-        /// <summary>
-        /// 指定されたキャラクターのHPが変更されたときに発火するイベント。
-        /// (CharacterType characterType, int currentHP, int maxHP) を引数に持つ。
-        /// </summary>
-        event Action<CharacterType, int, int> OnHPChanged;
-
-        /// <summary>
-        /// 指定されたキャラクターが死亡しているか判定する。
-        /// </summary>
-        /// <param name="characterType">キャラクターの種類。</param>
-        /// <returns>死亡している場合はtrue、それ以外はfalse。</returns>
-        bool IsCharacterDead(CharacterType characterType);
-
-        /// <summary>
-        /// 指定されたキャラクターにダメージを適用する。
-        /// </summary>
-        /// <param name="characterType">ダメージを受けるキャラクターの種類。</param>
-        /// <param name="amount">ダメージ量。</param>
-        void ApplyDamage(CharacterType characterType, int amount);
-
-        /// <summary>
-        /// 指定されたキャラクターのHPを回復する。
-        /// </summary>
-        /// <param name="characterType">HPを回復するキャラクターの種類。</param>
-        /// <param name="amount">回復量。</param>
-        void Heal(CharacterType characterType, int amount);
-
-        /// <summary>
-        /// 指定されたキャラクターのHPを最大値にリセットする。
-        /// </summary>
-        /// <param name="characterType">HPをリセットするキャラクターの種類。</param>
-        void ResetHP(CharacterType characterType);
-
-        /// <summary>
-        /// 全てのキャラクターのHPをリセットする。
-        /// </summary>
-        void ResetAllCharacterStats();
-
-        /// <summary>
-        /// 指定されたキャラクターの現在のHPを取得する。
-        /// </summary>
-        /// <param name="characterType">キャラクターの種類。</param>
-        /// <returns>現在のHP。</returns>
-        int GetCurrentHP(CharacterType characterType);
-
-        /// <summary>
-        /// 指定されたキャラクターの最大HPを取得する。
-        /// </summary>
-        /// <param name="characterType">キャラクターの種類。</param>
-        /// <returns>最大HP。</returns>
-        int GetMaxHP(CharacterType characterType);
-    }
-
     /// <summary>
     /// キャラクターごとのHPデータを保持するクラス。
     /// </summary>
@@ -120,66 +64,40 @@ namespace BicolorWitch.Game
     /// </summary>
     public class HPManager : MonoBehaviour, IHPManager
     {
+        public static HPManager Instance = null;
         [Header("HP設定")]
         [SerializeField, Tooltip("T型キャラクターのHPデータ")]
-        private CharacterHPData tCharacterHPData;
+        public CharacterHPData tCharacterHPData;
         [SerializeField, Tooltip("D型キャラクターのHPデータ")]
-        private CharacterHPData dCharacterHPData;
+        public CharacterHPData dCharacterHPData;
         [SerializeField, Tooltip("ゲームオーバーとなる落下Y座標")]
         private float gameOverFallY = -10f;
-
-        [Header("依存コンポーネント")]
-        [SerializeField, Tooltip("キャラクター切り替え機能を提供するCharacterSwitcherを実装したオブジェクト")]
-        private MonoBehaviour characterSwitcherMono;
-        [SerializeField, Tooltip("UI更新機能を提供するUIManagerを実装したオブジェクト")]
-        private MonoBehaviour uiManagerMono;
-        [SerializeField, Tooltip("ゲーム管理機能を提供するGameManagerを実装したオブジェクト")]
-        private MonoBehaviour gameManagerMono;
-
-        private ICharacterSwitcher characterSwitcher;
-        private IUIManager uiManager;
-        private IGManager gameManager;
 
         // IHPManagerの実装
         public event Action<CharacterType, int, int> OnHPChanged;
 
         private void Awake()
         {
-            // 依存コンポーネントの取得とNullチェック
-            if (characterSwitcherMono == null || !(characterSwitcherMono is ICharacterSwitcher))
+            if (Instance != null && Instance != this)
             {
-                Debug.LogError("CharacterSwitcherMonoが設定されていないか、ICharacterSwitcherを実装していません。", this);
-                enabled = false;
+                Destroy(gameObject);
                 return;
             }
-            characterSwitcher = characterSwitcherMono as ICharacterSwitcher;
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
 
-            if (uiManagerMono == null || !(uiManagerMono is IUIManager))
-            {
-                Debug.LogError("UIManagerMonoが設定されていないか、IUIManagerを実装していません。", this);
-                enabled = false;
-                return;
-            }
-            uiManager = uiManagerMono as IUIManager;
-
-            if (gameManagerMono == null || !(gameManagerMono is IGManager))
-            {
-                Debug.LogError("GameManagerMonoが設定されていないか、IGManagerを実装していません。", this);
-                enabled = false;
-                return;
-            }
-            gameManager = gameManagerMono as IGManager;
-
+        private IEnumerator Start()
+        {
+            yield return new WaitUntil(() => Core.GManager.Instance != null);
+            yield return new WaitUntil(() => UIManager.Instance != null);
             // HPデータの初期化
             tCharacterHPData.Initialize();
             dCharacterHPData.Initialize();
-        }
-
-        private void Start()
-        {
+            yield return null;
             // UIの初期更新
-            uiManager.UpdateHP(tCharacterHPData.Type, tCharacterHPData.CurrentHP, tCharacterHPData.MaxHP);
-            uiManager.UpdateHP(dCharacterHPData.Type, dCharacterHPData.CurrentHP, dCharacterHPData.MaxHP);
+            UIManager.Instance?.UpdateHP(tCharacterHPData.Type, tCharacterHPData.CurrentHP, tCharacterHPData.MaxHP);
+            UIManager.Instance?.UpdateHP(dCharacterHPData.Type, dCharacterHPData.CurrentHP, dCharacterHPData.MaxHP);
         }
 
         private void Update()
@@ -187,9 +105,9 @@ namespace BicolorWitch.Game
             // 落下によるゲームオーバー判定はStageManagerで行うため、ここでは削除
 
             // 両方のキャラクターが死亡した場合のゲームオーバー判定
-            if (characterSwitcher.AreAllCharactersDead)
+            if (GManager.Instance.currentGameState==GManager.GameState.Playing&& CharacterSwitcher.Instance.AreAllCharactersDead)
             {
-                gameManager.GameOver();
+                GManager.Instance.GameOver();
             }
         }
 
@@ -211,7 +129,7 @@ namespace BicolorWitch.Game
             {
                 targetData.TakeDamage(amount);
                 OnHPChanged?.Invoke(characterType, targetData.CurrentHP, targetData.MaxHP);
-                uiManager.UpdateHP(characterType, targetData.CurrentHP, targetData.MaxHP);
+                UIManager.Instance.UpdateHP(characterType, targetData.CurrentHP, targetData.MaxHP);
 
                 if (targetData.IsDead)
                 {
@@ -231,7 +149,7 @@ namespace BicolorWitch.Game
             {
                 targetData.RestoreHP(amount);
                 OnHPChanged?.Invoke(characterType, targetData.CurrentHP, targetData.MaxHP);
-                uiManager.UpdateHP(characterType, targetData.CurrentHP, targetData.MaxHP);
+                UIManager.Instance.UpdateHP(characterType, targetData.CurrentHP, targetData.MaxHP);
             }
         }
 
@@ -245,7 +163,7 @@ namespace BicolorWitch.Game
             {
                 targetData.ResetToMaxHP();
                 OnHPChanged?.Invoke(characterType, targetData.CurrentHP, targetData.MaxHP);
-                uiManager.UpdateHP(characterType, targetData.CurrentHP, targetData.MaxHP);
+                UIManager.Instance.UpdateHP(characterType, targetData.CurrentHP, targetData.MaxHP);
             }
         }
 

@@ -45,5 +45,19 @@ namespace BicolorWitch.Player
         /// 全てのキャラクターのHPをリセットする。
         /// </summary>
         void ResetAllCharacterStats();
+
+        /// <summary>
+        /// 指定されたキャラクターにダメージを適用する。
+        /// </summary>
+        /// <param name="characterType">ダメージを受けるキャラクターの種類。</param>
+        /// <param name="amount">ダメージ量。</param>
+        void ApplyDamage(CharacterType characterType, int amount);
+
+        /// <summary>
+        /// 指定されたキャラクターのHPを回復する。
+        /// </summary>
+        /// <param name="characterType">HPを回復するキャラクターの種類。</param>
+        /// <param name="amount">回復量。</param>
+        void Heal(CharacterType characterType, int amount);
     }
 }

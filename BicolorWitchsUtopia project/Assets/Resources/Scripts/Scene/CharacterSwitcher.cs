@@ -1,40 +1,11 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
-using BicolorWitch.Player; // IHPManagerとCharacterTypeを参照するために追加
+using BicolorWitch.Player;
+using BicolorWitch.Game; // IHPManagerとCharacterTypeを参照するために追加
 
 namespace BicolorWitch.Player
 {
-
-
-    /// <summary>
-    /// UI更新機能を提供するインターフェース。
-    /// UIManagerが実装することを想定。
-    /// </summary>
-    public interface IUIManager
-    {
-        /// <summary>
-        /// 現在アクティブなキャラクターのUIを更新する。
-        /// </summary>
-        /// <param name="activeCharacter">アクティブなキャラクターの種類。</param>
-        void UpdateActiveCharacterUI(CharacterType activeCharacter);
-
-        /// <summary>
-        /// キャラクター切り替えクールタイムのUIを更新する。
-        /// </summary>
-        /// <param name="currentCooldown">現在のクールタイム。</param>
-        /// <param name="maxCooldown">最大クールタイム。</param>
-        void UpdateSwitchCooldownUI(float currentCooldown, float maxCooldown);
-
-        /// <summary>
-        /// 指定されたキャラクターのMPをUIに表示する。
-        /// </summary>
-        /// <param name="characterType">キャラクターの種類。</param>
-        /// <param name="currentMP">現在のMP。</param>
-        /// <param name="maxMP">最大MP。</param>
-        void UpdateMP(CharacterType characterType, int currentMP, int maxMP);
-    }
-
     /// <summary>
     /// シェーダー管理機能を提供するインターフェース。
     /// ShaderManagerが実装することを想定。
@@ -63,12 +34,7 @@ namespace BicolorWitch.Player
         // Inspector: このキャラクターのPlayerController
         [Tooltip("このキャラクターのPlayerController")]
         public PlayerController Controller;
-        // Inspector: このキャラクターのHPManager
-        [Tooltip("このキャラクターのHPManager")]
-        public MonoBehaviour HPManagerMono; // IHPManagerを実装したMonoBehaviour
 
-        // プライベート変数
-        private IHPManager hpManager;
         private int currentMP; // キャラクターごとのMP
         private int maxMP;     // キャラクターごとの最大MP
 
@@ -88,13 +54,6 @@ namespace BicolorWitch.Player
         /// <param name="defaultMaxMP">初期の最大MP。</param>
         public void Initialize(int defaultMaxMP)
         {
-            if (HPManagerMono == null || !(HPManagerMono is IHPManager))
-            {
-                Debug.LogError($"CharacterType {Type} のHPManagerMonoが設定されていないか、IHPManagerを実装していません。", CharacterGameObject);
-                return;
-            }
-            hpManager = HPManagerMono as IHPManager;
-
             maxMP = defaultMaxMP;
             currentMP = maxMP;
             CharacterGameObject.SetActive(false); // 初期状態では非アクティブ
@@ -135,7 +94,7 @@ namespace BicolorWitch.Player
         /// <summary>
         /// このキャラクターが死亡しているか（HPが0か）を判定する。
         /// </summary>
-        public bool IsDead => hpManager != null && hpManager.IsCharacterDead(Type);
+        public bool IsDead => HPManager.Instance!= null && HPManager.Instance.IsCharacterDead(Type);
     }
 
     /// <summary>
@@ -144,6 +103,7 @@ namespace BicolorWitch.Player
     /// </summary>
     public class CharacterSwitcher : MonoBehaviour, ICharacterSwitcher
     {
+        public static CharacterSwitcher Instance = null;
         // ICharacterSwitcherインターフェースの追加メソッドの実装
         public CharacterType GetActiveCharacterType()
         {
@@ -236,6 +196,7 @@ namespace BicolorWitch.Player
 
         // イベント
         public event Action<CharacterType> OnCharacterSwitched; // キャラクターが切り替わったときに発火
+        public bool isStart = false;
 
         public float GetMaxDashCooldown(CharacterType characterType)
         {
@@ -274,6 +235,13 @@ namespace BicolorWitch.Player
 
         private void Awake()
         {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
             // キャラクターデータの初期化
             sisterTData.Initialize(defaultMaxMP);
             sisterDData.Initialize(defaultMaxMP);
@@ -298,6 +266,7 @@ namespace BicolorWitch.Player
 
         private void Start()
         {
+            isStart = false;
             // 初期アクティブキャラクターを設定
             // どちらのキャラクターも死んでいない場合、姉を初期アクティブにする
             if (!sisterTData.IsDead)
@@ -314,16 +283,8 @@ namespace BicolorWitch.Player
                 enabled = false;
                 return;
             }
-
-            // HPManagerのイベントを購読
-            if (sisterTData.HPManagerMono is IHPManager hpManagerT)
-            {
-                hpManagerT.OnHPChanged += HandleHPChanged;
-            }
-            if (sisterDData.HPManagerMono is IHPManager hpManagerD)
-            {
-                hpManagerD.OnHPChanged += HandleHPChanged;
-            }
+            HPManager.Instance.OnHPChanged += HandleHPChanged;
+            HPManager.Instance.OnHPChanged += HandleHPChanged;
 
             // UIの初期更新
             uiManager.UpdateActiveCharacterUI(activeCharacterData.Type);
@@ -334,15 +295,8 @@ namespace BicolorWitch.Player
 
         private void OnDestroy()
         {
-            // HPManagerのイベント購読解除
-            if (sisterTData.HPManagerMono is IHPManager hpManagerT)
-            {
-                hpManagerT.OnHPChanged -= HandleHPChanged;
-            }
-            if (sisterDData.HPManagerMono is IHPManager hpManagerD)
-            {
-                hpManagerD.OnHPChanged -= HandleHPChanged;
-            }
+            HPManager.Instance.OnHPChanged -= HandleHPChanged;
+            HPManager.Instance.OnHPChanged -= HandleHPChanged;
             OnCharacterSwitched = null;
         }
 
@@ -461,8 +415,8 @@ namespace BicolorWitch.Player
             sisterDData.ResetMP();
 
             // HPはIHPManager経由でリセット
-            if (sisterTData.HPManagerMono is IHPManager hpManagerT) hpManagerT.ResetHP(sisterTData.Type);
-            if (sisterDData.HPManagerMono is IHPManager hpManagerD) hpManagerD.ResetHP(sisterTData.Type);
+            HPManager.Instance.ResetHP(sisterTData.Type);
+            HPManager.Instance.ResetHP(sisterTData.Type);
 
             // UI更新
             uiManager.UpdateMP(sisterTData.Type, sisterTData.CurrentMP, sisterTData.MaxMP);
@@ -506,10 +460,10 @@ namespace BicolorWitch.Player
         /// </summary>
         /// <param name="characterType">キャラクターの種類。</param>
         /// <returns>IHPManagerインスタンス。</returns>
-        public IHPManager GetHPManager(CharacterType characterType)
+        public CharacterHPData GetHPManager(CharacterType characterType)
         {
-            if (sisterTData.Type == characterType && sisterTData.HPManagerMono is IHPManager hpManagerT) return hpManagerT;
-            if (sisterDData.Type == characterType && sisterDData.HPManagerMono is IHPManager hpManagerD) return hpManagerD;
+            if (sisterTData.Type == characterType) return HPManager.Instance.tCharacterHPData;
+            if (sisterDData.Type == characterType) return HPManager.Instance.dCharacterHPData;
             return null;
         }
 

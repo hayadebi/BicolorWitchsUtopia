@@ -54,14 +54,6 @@ namespace BicolorWitch.Enemy
         [SerializeField, Tooltip("死亡アニメーションのトリガー名")]
         private string dieAnimationTrigger = "Die";
 
-        [Header("依存コンポーネント")]
-        [SerializeField, Tooltip("プレイヤーのHP管理機能を提供するHPManagerを実装したオブジェクト")]
-        private MonoBehaviour hpManagerMono;
-        [SerializeField, Tooltip("キャラクター切り替え機能を提供するCharacterSwitcherを実装したオブジェクト")]
-        private MonoBehaviour characterSwitcherMono;
-
-        private BicolorWitch.Game.IHPManager hpManager;
-        private ICharacterSwitcher characterSwitcher;
         private Transform playerTransform;
         private float currentAttackCooldown;
         private bool isDead = false;
@@ -84,22 +76,6 @@ namespace BicolorWitch.Enemy
                     Debug.LogWarning("Animatorコンポーネントが設定されていません。アニメーションは再生されません。", this);
                 }
             }
-
-            if (hpManagerMono == null || !(hpManagerMono is BicolorWitch.Game.IHPManager))
-            {
-                Debug.LogError("HPManagerMonoが設定されていないか、IHPManagerを実装していません。", this);
-                enabled = false;
-                return;
-            }
-            hpManager = hpManagerMono as BicolorWitch.Game.IHPManager;
-
-            if (characterSwitcherMono == null || !(characterSwitcherMono is ICharacterSwitcher))
-            {
-                Debug.LogError("CharacterSwitcherMonoが設定されていないか、ICharacterSwitcherを実装していません。", this);
-                enabled = false;
-                return;
-            }
-            characterSwitcher = characterSwitcherMono as ICharacterSwitcher;
         }
 
         private void Update()
@@ -114,7 +90,7 @@ namespace BicolorWitch.Enemy
             }
 
             // プレイヤーの位置を取得
-            GameObject activePlayer = characterSwitcher.GetActiveCharacterGameObject();
+            GameObject activePlayer = CharacterSwitcher.Instance.GetActiveCharacterGameObject();
             if (activePlayer == null) return; // プレイヤーが見つからない場合は何もしない
 
             playerTransform = activePlayer.transform;
@@ -196,8 +172,8 @@ namespace BicolorWitch.Enemy
         {
             if (currentAttackCooldown <= 0)
             {
-                Debug.Log($"{gameObject.name} がプレイヤー({characterSwitcher.GetActiveCharacterType()})を攻撃！", this);
-                hpManager.ApplyDamage(characterSwitcher.GetActiveCharacterType(), attackDamage);
+                Debug.Log($"{gameObject.name} がプレイヤー({CharacterSwitcher.Instance.GetActiveCharacterType()})を攻撃！", this);
+                HPManager.Instance.ApplyDamage(CharacterSwitcher.Instance.GetActiveCharacterType(), attackDamage);
                 currentAttackCooldown = attackCooldown;
 
                 // ランダムな攻撃アニメーションを再生

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
-using BicolorWitch.Player; // IHPManagerとCharacterTypeを参照するために追加
+using BicolorWitch.Player;
+using BicolorWitch.Core; // IHPManagerとCharacterTypeを参照するために追加
 
 namespace BicolorWitch.Player
 {
@@ -100,15 +101,6 @@ namespace BicolorWitch.Player
         // Inspector: InputManagerを実装したオブジェクトを設定
         [SerializeField, Tooltip("入力イベントを提供するInputManagerを実装したオブジェクト")]
         private MonoBehaviour inputProviderMono;
-        // Inspector: CharacterSwitcherを実装したオブジェクトを設定
-        [SerializeField, Tooltip("キャラクター切り替え機能を提供するCharacterSwitcherを実装したオブジェクト")]
-        private MonoBehaviour characterSwitcherMono;
-        // Inspector: MagicSystemを実装したオブジェクトを設定
-        [SerializeField, Tooltip("魔法システム機能を提供するMagicSystemを実装したオブジェクト")]
-        private MonoBehaviour magicSystemMono;
-        // Inspector: HPManagerを実装したオブジェクトを設定（現在はCharacterSwitcher経由でHP状態を把握するため直接は使用しないが、将来的な拡張のために残す）
-        [SerializeField, Tooltip("HP管理機能を提供するHPManagerを実装したオブジェクト")]
-        private MonoBehaviour hpManagerMono; // IHPManagerを実装したMonoBehaviour (将来的な拡張のために残す)
         // Inspector: ゲームオーバーを通知するオブジェクトを設定
         [SerializeField, Tooltip("ゲームオーバーを通知するIGameOverNotifierを実装したオブジェクト")]
         private MonoBehaviour gameOverNotifierMono;
@@ -117,8 +109,6 @@ namespace BicolorWitch.Player
         private Rigidbody2D rb;
         private Animator animator;
         private IInputProvider inputProvider;
-        private ICharacterSwitcher characterSwitcher;
-        private IMagicSystem magicSystem;
         private IGameOverNotifier gameOverNotifier;
 
         private float currentMoveInput = 0f;
@@ -152,29 +142,6 @@ namespace BicolorWitch.Player
                 return;
             }
             inputProvider = inputProviderMono as IInputProvider;
-
-            if (characterSwitcherMono == null || !(characterSwitcherMono is ICharacterSwitcher))
-            {
-                Debug.LogError("CharacterSwitcherMonoが設定されていないか、ICharacterSwitcherを実装していません。", this);
-                enabled = false;
-                return;
-            }
-            characterSwitcher = characterSwitcherMono as ICharacterSwitcher;
-
-            if (magicSystemMono == null || !(magicSystemMono is IMagicSystem))
-            {
-                Debug.LogError("MagicSystemMonoが設定されていないか、IMagicSystemを実装していません。", this);
-                enabled = false;
-                return;
-            }
-            magicSystem = magicSystemMono as IMagicSystem;
-
-            // HPManagerMonoは直接使用しないが、設定されているか確認
-            // CharacterSwitcherがIHPManagerと連携して死亡状態を管理することを想定する。
-            if (hpManagerMono != null && !(hpManagerMono is IHPManager))
-            {
-                Debug.LogWarning("HPManagerMonoが設定されていますが、IHPManagerを実装していません。", this);
-            }
 
             if (gameOverNotifierMono == null || !(gameOverNotifierMono is IGameOverNotifier))
             {
@@ -225,7 +192,7 @@ namespace BicolorWitch.Player
 
         private void Update()
         {
-            if (isDead) return; // 死亡状態なら操作を受け付けない
+            if (isDead||GManager.Instance.currentGameState!=GManager.GameState.Playing) return; // 死亡状態なら操作を受け付けない
 
             CheckGroundStatus();
             UpdateBasicAttackCooldown();
@@ -235,7 +202,7 @@ namespace BicolorWitch.Player
             CheckFallForGameOver();
 
             // 全てのキャラクターが死亡している場合もゲームオーバー
-            if (characterSwitcher != null && characterSwitcher.AreAllCharactersDead)
+            if (CharacterSwitcher.Instance != null && CharacterSwitcher.Instance.AreAllCharactersDead)
             {
                 TriggerGameOver();
             }
@@ -285,9 +252,9 @@ namespace BicolorWitch.Player
         private void HandleSwitchCharacterInput()
         {
             if (isDead) return;
-            if (characterSwitcher != null)
+            if (CharacterSwitcher.Instance != null)
             {
-                if (!characterSwitcher.TrySwitchCharacter())
+                if (!CharacterSwitcher.Instance.TrySwitchCharacter())
                 {
                     Debug.LogWarning("キャラクター切り替えに失敗しました。HPが0のキャラクターには切り替えできません。", this);
                 }
@@ -300,9 +267,9 @@ namespace BicolorWitch.Player
         private void HandleMagicInput1()
         {
             if (isDead) return;
-            if (magicSystem != null)
+            if (Magic.MagicSystem.Instance != null)
             {
-                if (!magicSystem.TryCastMagic(1))
+                if (!Magic.MagicSystem.Instance.TryCastMagic(1))
                 {
                     Debug.LogWarning("魔法スロット1の発動に失敗しました。", this);
                 }
@@ -315,9 +282,9 @@ namespace BicolorWitch.Player
         private void HandleMagicInput2()
         {
             if (isDead) return;
-            if (magicSystem != null)
+            if (Magic.MagicSystem.Instance != null)
             {
-                if (!magicSystem.TryCastMagic(2))
+                if (!Magic.MagicSystem.Instance.TryCastMagic(2))
                 {
                     Debug.LogWarning("魔法スロット2の発動に失敗しました。", this);
                 }
@@ -433,7 +400,7 @@ namespace BicolorWitch.Player
         /// </summary>
         private void CheckFallForGameOver()
         {
-            if (transform.position.y < fallThresholdY)
+            if (transform.position.y < fallThresholdY&& GManager.Instance.currentGameState == GManager.GameState.Playing)
             {
                 TriggerGameOver();
             }

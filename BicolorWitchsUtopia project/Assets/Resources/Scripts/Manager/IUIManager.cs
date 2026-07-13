@@ -1,72 +1,42 @@
-// IUIManager.cs (ˆË‘¶ŠÖŒW‚Ì‚½‚ß“¯¶¬)
 using BicolorWitch.Player;
-using System;
 
 namespace BicolorWitch.Game
 {
     /// <summary>
-    /// UIXV‹@”\‚ğ’ñ‹Ÿ‚·‚éƒCƒ“ƒ^[ƒtƒF[ƒXB
-    /// UIManager‚ªÀ‘•‚·‚é‚±‚Æ‚ğ‘z’èB
+    /// UIç®¡ç†æ©Ÿèƒ½ã‚’æä¾›ã™ã‚‹ã‚¤ãƒ³ã‚¿ãƒ¼ãƒ•ã‚§ãƒ¼ã‚¹ã€‚
     /// </summary>
     public interface IUIManager
     {
+        void ShowTitleUI();
+        void ShowStageSelectUI();
+        void ShowGameOverUI();
+        void ShowStageClearUI();
+        void ShowPauseUI();
+        void HideAllGameUIs();
+        void UpdateHP(CharacterType characterType, float currentHP, float maxHP);
+        void UpdateMP(CharacterType characterType, float currentMP, float maxMP);
+        void UpdateDashCooldown(CharacterType characterType, float currentCooldown, float maxCooldown);
+        void ShowGamePlayUI();
+
         /// <summary>
-        /// Œ»İƒAƒNƒeƒBƒu‚ÈƒLƒƒƒ‰ƒNƒ^[‚ÌUI‚ğXV‚·‚éB
+        /// ç¾åœ¨ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ãªã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®UIã‚’æ›´æ–°ã™ã‚‹ã€‚
         /// </summary>
-        /// <param name="activeCharacter">ƒAƒNƒeƒBƒu‚ÈƒLƒƒƒ‰ƒNƒ^[‚Ìí—ŞB</param>
+        /// <param name="activeCharacter">ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ãªã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®ç¨®é¡ã€‚</param>
         void UpdateActiveCharacterUI(CharacterType activeCharacter);
 
         /// <summary>
-        /// ƒLƒƒƒ‰ƒNƒ^[Ø‚è‘Ö‚¦ƒN[ƒ‹ƒ^ƒCƒ€‚ÌUI‚ğXV‚·‚éB
+        /// ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼åˆ‡ã‚Šæ›¿ãˆã‚¯ãƒ¼ãƒ«ã‚¿ã‚¤ãƒ ã®UIã‚’æ›´æ–°ã™ã‚‹ã€‚
         /// </summary>
-        /// <param name="currentCooldown">Œ»İ‚ÌƒN[ƒ‹ƒ^ƒCƒ€B</param>
-        /// <param name="maxCooldown">Å‘åƒN[ƒ‹ƒ^ƒCƒ€B</param>
+        /// <param name="currentCooldown">ç¾åœ¨ã®ã‚¯ãƒ¼ãƒ«ã‚¿ã‚¤ãƒ ã€‚</param>
+        /// <param name="maxCooldown">æœ€å¤§ã‚¯ãƒ¼ãƒ«ã‚¿ã‚¤ãƒ ã€‚</param>
         void UpdateSwitchCooldownUI(float currentCooldown, float maxCooldown);
 
         /// <summary>
-        /// w’è‚³‚ê‚½ƒLƒƒƒ‰ƒNƒ^[‚ÌMP‚ğUI‚É•\¦‚·‚éB
+        /// æŒ‡å®šã•ã‚ŒãŸã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®MPã‚’UIã«è¡¨ç¤ºã™ã‚‹ã€‚
         /// </summary>
-        /// <param name="characterType">ƒLƒƒƒ‰ƒNƒ^[‚Ìí—ŞB</param>
-        /// <param name="currentMP">Œ»İ‚ÌMPB</param>
-        /// <param name="maxMP">Å‘åMPB</param>
+        /// <param name="characterType">ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®ç¨®é¡ã€‚</param>
+        /// <param name="currentMP">ç¾åœ¨ã®MPã€‚</param>
+        /// <param name="maxMP">æœ€å¤§MPã€‚</param>
         void UpdateMP(CharacterType characterType, int currentMP, int maxMP);
-
-        /// <summary>
-        /// w’è‚³‚ê‚½ƒLƒƒƒ‰ƒNƒ^[‚ÌHP‚ğUI‚É•\¦‚·‚éB
-        /// </summary>
-        /// <param name="characterType">ƒLƒƒƒ‰ƒNƒ^[‚Ìí—ŞB</param>
-        /// <param name="currentHP">Œ»İ‚ÌHPB</param>
-        /// <param name="maxHP">Å‘åHPB</param>
-        void UpdateHP(CharacterType characterType, int currentHP, int maxHP);
-
-        /// <summary>
-        /// ƒ_ƒbƒVƒ…ƒN[ƒ‹ƒ^ƒCƒ€‚ÌUI‚ğXV‚·‚éB
-        /// </summary>
-        /// <param name="currentCooldown">Œ»İ‚ÌƒN[ƒ‹ƒ^ƒCƒ€B</param>
-        /// <param name="maxCooldown">Å‘åƒN[ƒ‹ƒ^ƒCƒ€B</param>
-        void UpdateDashCooldownUI(float currentCooldown, float maxCooldown);
-
-        /// <summary>
-        /// ƒQ[ƒ€ƒI[ƒo[UI‚ğ•\¦‚·‚éB
-        /// </summary>
-        void ShowGameOverUI();
-
-        /// <summary>
-        /// ƒXƒe[ƒWƒNƒŠƒAUI‚ğ•\¦‚·‚éB
-        /// </summary>
-        void ShowStageClearUI();
-
-        void ShowTitleUI();
-        void ShowStageSelectUI();
-        void HideAllGameUIs();
-        void ShowPauseUI();
-
-        /// <summary>
-        /// ƒLƒƒƒ‰ƒNƒ^[‚Ìƒ_ƒbƒVƒ…ƒN[ƒ‹ƒ^ƒCƒ€‚ğXV‚·‚éB
-        /// </summary>
-        /// <param name="characterType">XV‚·‚éƒLƒƒƒ‰ƒNƒ^[‚Ìƒ^ƒCƒvB</param>
-        /// <param name="currentCooldown">Œ»İ‚ÌƒN[ƒ‹ƒ^ƒCƒ€B</param>
-        /// <param name="maxCooldown">Å‘åƒN[ƒ‹ƒ^ƒCƒ€B</param>
-        void UpdateDashCooldown(CharacterType characterType, float currentCooldown, float maxCooldown);
     }
 }

@@ -2,6 +2,8 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using BicolorWitch.Player;
+using BicolorWitch.Game;
+using BicolorWitch.UI;
 
 namespace BicolorWitch.Magic
 {
@@ -87,6 +89,8 @@ namespace BicolorWitch.Magic
     /// </summary>
     public class MagicSystem : MonoBehaviour, IMagicSystem
     {
+        public static MagicSystem Instance { get; private set; }
+
         [Header("魔法データ")]
         [SerializeField, Tooltip("ゲーム内で利用可能な全ての魔法データリスト")]
         private List<MagicData> allMagicSpells = new List<MagicData>();
@@ -101,38 +105,39 @@ namespace BicolorWitch.Magic
         [SerializeField, Tooltip("妹の魔法スロット2に設定する魔法のallMagicSpellsリストインデックス (-1で未設定)")]
         private int sisterDMagicSlot2Index = -1;
 
-        [Header("依存コンポーネント")]
-        [SerializeField, Tooltip("キャラクター切り替え機能を提供するCharacterSwitcherを実装したオブジェクト")]
-        private MonoBehaviour characterSwitcherMono;
-        [SerializeField, Tooltip("UI更新機能を提供するUIManagerを実装したオブジェクト")]
-        private MonoBehaviour uiManagerMono;
-
-        private ICharacterSwitcher characterSwitcher;
-        private IUIManager uiManager;
-
         // CharacterType, SlotIndex, MagicData
         private Dictionary<CharacterType, Dictionary<int, MagicData>> characterMagicSlots;
 
         private void Awake()
         {
-            // 依存コンポーネントの取得とNullチェック
-            if (characterSwitcherMono == null || !(characterSwitcherMono is ICharacterSwitcher))
+            if (Instance != null && Instance != this)
             {
-                Debug.LogError("CharacterSwitcherMonoが設定されていないか、ICharacterSwitcherを実装していません。", this);
-                enabled = false;
+                Destroy(gameObject);
                 return;
             }
-            characterSwitcher = characterSwitcherMono as ICharacterSwitcher;
-
-            if (uiManagerMono == null || !(uiManagerMono is IUIManager))
-            {
-                Debug.LogError("UIManagerMonoが設定されていないか、IUIManagerを実装していません。", this);
-                enabled = false;
-                return;
-            }
-            uiManager = uiManagerMono as IUIManager;
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
 
             InitializeMagicSlots();
+        }
+
+        private void Update()
+        {
+            if (characterMagicSlots == null) return;
+
+            // 全ての魔法のクールタイムを更新
+            foreach (var characterEntry in characterMagicSlots)
+            {
+                if (characterEntry.Value == null) continue;
+
+                foreach (var magicEntry in characterEntry.Value)
+                {
+                    if (magicEntry.Value != null)
+                    {
+                        magicEntry.Value.UpdateCooldown(Time.deltaTime);
+                    }
+                }
+            }
         }
 
         private void InitializeMagicSlots()
@@ -162,18 +167,6 @@ namespace BicolorWitch.Magic
             AddMagicToSlot(CharacterType.SisterD, 2, sisterDMagicSlot2Index);
         }
 
-        private void Update()
-        {
-            // 全ての魔法のクールタイムを更新
-            foreach (var characterEntry in characterMagicSlots)
-            {
-                foreach (var magicEntry in characterEntry.Value)
-                {
-                    magicEntry.Value.UpdateCooldown(Time.deltaTime);
-                }
-            }
-        }
-
         /// <summary>
         /// 指定されたスロットの魔法の発動を試みる。
         /// IMagicSystemインターフェースの実装。
@@ -182,9 +175,7 @@ namespace BicolorWitch.Magic
         /// <returns>魔法の発動が成功した場合はtrue、失敗した場合はfalse。</returns>
         public bool TryCastMagic(int slotIndex)
         {
-            if (characterSwitcher == null) return false;
-
-            CharacterType activeCharacterType = characterSwitcher.GetActiveCharacterType();
+            CharacterType activeCharacterType = CharacterSwitcher.Instance.GetActiveCharacterType();
 
             if (!characterMagicSlots.TryGetValue(activeCharacterType, out var magicSlots))
             {
@@ -205,7 +196,7 @@ namespace BicolorWitch.Magic
             }
 
             // MP消費
-            if (!characterSwitcher.ConsumeMP(activeCharacterType, magicData.CostMP))
+            if (!CharacterSwitcher.Instance.ConsumeMP(activeCharacterType, magicData.CostMP))
             {
                 Debug.LogWarning($"{magicData.Name} の発動に必要なMPが足りません。必要MP: {magicData.CostMP}", this);
                 return false;
@@ -223,7 +214,7 @@ namespace BicolorWitch.Magic
             }
 
             // UI更新
-            uiManager.UpdateMP(activeCharacterType, characterSwitcher.GetCurrentMP(activeCharacterType), characterSwitcher.GetMaxMP(activeCharacterType));
+            UIManager.Instance.UpdateMP(activeCharacterType, CharacterSwitcher.Instance.GetCurrentMP(activeCharacterType), CharacterSwitcher.Instance.GetMaxMP(activeCharacterType));
 
             return true;
         }

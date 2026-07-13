@@ -2,27 +2,23 @@ using UnityEngine;
 using System;
 using BicolorWitch.Player;
 using BicolorWitch.Game;
+using BicolorWitch.UI;
 
 namespace BicolorWitch.Core
 {
+    public interface IGameManager { };
     /// <summary>
     /// ゲーム全体の進行を管理するクラス。
     /// シングルトンパターンを適用し、ゲーム全体で唯一のインスタンスであることを保証する。
     /// </summary>
     public class GManager : MonoBehaviour
     {
-        public static GManager Instance { get; private set; }
+        public static GManager Instance = null;
 
         [Header("依存コンポーネント")]
         [SerializeField, Tooltip("ステージ管理機能を提供するStageManagerを実装したオブジェクト")]
-        private MonoBehaviour stageManagerMono;
-        [SerializeField, Tooltip("UI管理機能を提供するUIManagerを実装したオブジェクト")]
-        private MonoBehaviour uiManagerMono;
 
-        private StageManager stageManager;
-        private BicolorWitch.Game.IUIManager uiManager;
-
-        private GameState currentGameState = GameState.Title;
+        public GameState currentGameState = GameState.Title;
 
         public enum GameState
         {
@@ -43,21 +39,6 @@ namespace BicolorWitch.Core
             }
             Instance = this;
             DontDestroyOnLoad(gameObject);
-
-            // 依存コンポーネントの取得とNullチェック
-            if (stageManagerMono == null || !(stageManagerMono is StageManager))
-            {
-                Debug.LogError("StageManagerMonoが設定されていないか、StageManagerを実装していません。", this);
-                enabled = false;
-                return;
-            }
-            stageManager = stageManagerMono as StageManager;
-
-            if (uiManagerMono == null || !(uiManagerMono is BicolorWitch.Game.IUIManager))
-            {
-                Debug.LogWarning("UIManagerMonoが設定されていないか、IUIManagerを実装していません。UI表示は行われません。", this);
-            }
-            uiManager = uiManagerMono as BicolorWitch.Game.IUIManager;
         }
 
         private void Start()
@@ -81,18 +62,18 @@ namespace BicolorWitch.Core
             {
                 case GameState.Title:
                     // タイトル画面のUI表示、ステージアンロードなど
-                    stageManager?.UnloadCurrentStage();
-                    uiManager?.ShowTitleUI();
+                    StageManager.Instance?.UnloadCurrentStage();
+                    UIManager.Instance?.ShowTitleUI();
                     Time.timeScale = 1f;
                     break;
                 case GameState.StageSelect:
                     // ステージ選択画面のUI表示
-                    uiManager?.ShowStageSelectUI();
+                    UIManager.Instance?.ShowStageSelectUI();
                     Time.timeScale = 1f;
                     break;
                 case GameState.Playing:
                     // プレイ中のUI表示、ゲーム再開など
-                    uiManager?.HideAllGameUIs(); // タイトルやステージ選択UIを非表示にする想定
+                    UIManager.Instance?.HideAllGameUIs(); // タイトルやステージ選択UIを非表示にする想定
                     Time.timeScale = 1f;
                     break;
                 case GameState.GameOver:
@@ -105,7 +86,7 @@ namespace BicolorWitch.Core
                     break;
                 case GameState.Pause:
                     // ポーズUI表示、ゲーム一時停止
-                    uiManager?.ShowPauseUI();
+                    UIManager.Instance?.ShowPauseUI();
                     Time.timeScale = 0f;
                     break;
             }
@@ -126,7 +107,7 @@ namespace BicolorWitch.Core
         public void GameOver()
         {
             SetGameState(GameState.GameOver);
-            uiManager?.ShowGameOverUI();
+            UIManager.Instance?.ShowGameOverUI();
             // 必要に応じてリトライボタン表示など
         }
 
@@ -136,7 +117,7 @@ namespace BicolorWitch.Core
         public void StageClear()
         {
             SetGameState(GameState.StageClear);
-            uiManager?.ShowStageClearUI();
+            UIManager.Instance?.ShowStageClearUI();
             // 必要に応じて次のステージへ進むボタン表示など
         }
 
@@ -146,7 +127,7 @@ namespace BicolorWitch.Core
         /// <param name="stageID">開始するステージのID。</param>
         public void StartGame(string stageID)
         {
-            stageManager?.LoadStage(stageID);
+            StageManager.Instance?.LoadStage(stageID);
             SetGameState(GameState.Playing);
         }
 

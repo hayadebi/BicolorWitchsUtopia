@@ -1,8 +1,11 @@
 using UnityEngine;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using BicolorWitch.Player;
 using BicolorWitch.Enemy;
+using BicolorWitch.UI;
+using BicolorWitch.Core;
 
 namespace BicolorWitch.Game
 {
@@ -25,6 +28,8 @@ namespace BicolorWitch.Game
     /// </summary>
     public class StageManager : MonoBehaviour
     {
+        public static StageManager Instance = null;
+
         [Header("ステージ管理")]
         [SerializeField, Tooltip("ゲーム内に存在する全ステージのデータリスト")]
         private List<StageData> stageDataList = new List<StageData>();
@@ -35,62 +40,25 @@ namespace BicolorWitch.Game
         [SerializeField, Tooltip("プレイヤーが落下したと判定されるY座標のしきい値")]
         private float fallThresholdY = -10f;
 
-        [Header("依存コンポーネント")]
-        [SerializeField, Tooltip("HP管理機能を提供するHPManagerを実装したオブジェクト")]
-        private MonoBehaviour hpManagerMono;
-        [SerializeField, Tooltip("キャラクター切り替え機能を提供するCharacterSwitcherを実装したオブジェクト")]
-        private MonoBehaviour characterSwitcherMono;
-        [SerializeField, Tooltip("ゲーム全体の管理機能を提供するGameManagerを実装したオブジェクト")]
-        private MonoBehaviour gameManagerMono;
-        [SerializeField, Tooltip("UI管理機能を提供するUIManagerを実装したオブジェクト")]
-        private MonoBehaviour uiManagerMono;
-
-        private IHPManager hpManager;
-        private ICharacterSwitcher characterSwitcher;
-        private IGManager gameManager;
-        private IUIManager uiManager;
-
         private bool isGameOver = false;
         private GameObject currentStageInstance;
-        private StageData currentStageData;
+        [HideInInspector]
+        public StageData currentStageData;
 
         private void Awake()
         {
-            // 依存コンポーネントの取得とNullチェック
-            if (hpManagerMono == null || !(hpManagerMono is IHPManager))
+            if (Instance != null && Instance != this)
             {
-                Debug.LogError("HPManagerMonoが設定されていないか、IHPManagerを実装していません。", this);
-                enabled = false;
+                Destroy(gameObject);
                 return;
             }
-            hpManager = hpManagerMono as IHPManager;
-
-            if (characterSwitcherMono == null || !(characterSwitcherMono is ICharacterSwitcher))
-            {
-                Debug.LogError("CharacterSwitcherMonoが設定されていないか、ICharacterSwitcherを実装していません。", this);
-                enabled = false;
-                return;
-            }
-            characterSwitcher = characterSwitcherMono as ICharacterSwitcher;
-
-            if (gameManagerMono == null || !(gameManagerMono is IGManager))
-            {
-                Debug.LogError("GameManagerMonoが設定されていないか、IGManagerを実装していません。", this);
-                // enabled = false; // GameManagerがないとゲームオーバー処理ができないため、エラーは出すがコンポーネントは無効化しない
-                // return;
-            }
-            gameManager = gameManagerMono as IGManager;
-
-            if (uiManagerMono == null || !(uiManagerMono is IUIManager))
-            {
-                Debug.LogWarning("UIManagerMonoが設定されていないか、IUIManagerを実装していません。UI表示は行われません。", this);
-                // UIは必須ではないため、警告に留める
-            }
-            uiManager = uiManagerMono as IUIManager;
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
         }
 
         private void Start()
         {
+            ;
             // 初期状態ではステージはロードされていない状態とする
             // GameManagerなどから LoadStage が呼ばれることを想定
         }
@@ -160,17 +128,17 @@ namespace BicolorWitch.Game
         {
             isGameOver = false;
             // キャラクターのHPとMPをリセット
-            hpManager.ResetAllCharacterStats();
-            characterSwitcher.ResetAllCharacterStats();
+            HPManager.Instance.ResetAllCharacterStats();
+            CharacterSwitcher.Instance.ResetAllCharacterStats();
 
             // UIの更新
-            uiManager?.UpdateHP(CharacterType.SisterT, hpManager.GetCurrentHP(CharacterType.SisterT), hpManager.GetMaxHP(CharacterType.SisterT));
-            uiManager?.UpdateMP(CharacterType.SisterT, characterSwitcher.GetCurrentMP(CharacterType.SisterT), characterSwitcher.GetMaxMP(CharacterType.SisterT));
-            uiManager?.UpdateDashCooldown(CharacterType.SisterT, 0f, characterSwitcher.GetMaxDashCooldown(CharacterType.SisterT));
+            UIManager.Instance?.UpdateHP(CharacterType.SisterT, HPManager.Instance.GetCurrentHP(CharacterType.SisterT), HPManager.Instance.GetMaxHP(CharacterType.SisterT));
+            UIManager.Instance?.UpdateMP(CharacterType.SisterT, CharacterSwitcher.Instance.GetCurrentMP(CharacterType.SisterT), CharacterSwitcher.Instance.GetMaxMP(CharacterType.SisterT));
+            UIManager.Instance?.UpdateDashCooldown(CharacterType.SisterT, 0f, CharacterSwitcher.Instance.GetMaxDashCooldown(CharacterType.SisterT));
 
-            uiManager?.UpdateHP(CharacterType.SisterD, hpManager.GetCurrentHP(CharacterType.SisterD), hpManager.GetMaxHP(CharacterType.SisterD));
-            uiManager?.UpdateMP(CharacterType.SisterD, characterSwitcher.GetCurrentMP(CharacterType.SisterD), characterSwitcher.GetMaxMP(CharacterType.SisterD));
-            uiManager?.UpdateDashCooldown(CharacterType.SisterD, 0f, characterSwitcher.GetMaxDashCooldown(CharacterType.SisterD));
+            UIManager.Instance?.UpdateHP(CharacterType.SisterD, HPManager.Instance.GetCurrentHP(CharacterType.SisterD), HPManager.Instance.GetMaxHP(CharacterType.SisterD));
+            UIManager.Instance?.UpdateMP(CharacterType.SisterD, CharacterSwitcher.Instance.GetCurrentMP(CharacterType.SisterD), CharacterSwitcher.Instance.GetMaxMP(CharacterType.SisterD));
+            UIManager.Instance?.UpdateDashCooldown(CharacterType.SisterD, 0f, CharacterSwitcher.Instance.GetMaxDashCooldown(CharacterType.SisterD));
 
             Debug.Log("ステージ状態がリセットされました。", this);
         }
@@ -181,8 +149,8 @@ namespace BicolorWitch.Game
         private void CheckGameOverConditions()
         {
             // 両キャラクターのHPが0かチェック
-            bool isSisterTDead = hpManager.GetCurrentHP(CharacterType.SisterT) <= 0;
-            bool isSisterDDead = hpManager.GetCurrentHP(CharacterType.SisterD) <= 0;
+            bool isSisterTDead = HPManager.Instance.GetCurrentHP(CharacterType.SisterT) <= 0;
+            bool isSisterDDead = HPManager.Instance.GetCurrentHP(CharacterType.SisterD) <= 0;
 
             if (isSisterTDead && isSisterDDead)
             {
@@ -191,10 +159,10 @@ namespace BicolorWitch.Game
             }
 
             // アクティブなキャラクターの落下チェック
-            GameObject activePlayer = characterSwitcher.GetActiveCharacterGameObject();
+            GameObject activePlayer = CharacterSwitcher.Instance.GetActiveCharacterGameObject();
             if (activePlayer != null && activePlayer.transform.position.y < fallThresholdY)
             {
-                TriggerGameOver($"{characterSwitcher.GetActiveCharacterType()}キャラクターが落下しました。");
+                TriggerGameOver($"{CharacterSwitcher.Instance.GetActiveCharacterType()}キャラクターが落下しました。");
                 return;
             }
         }
@@ -209,8 +177,8 @@ namespace BicolorWitch.Game
 
             isGameOver = true;
             Debug.Log($"ゲームオーバー: {reason}", this);
-            gameManager?.GameOver();
-            uiManager?.ShowGameOverUI();
+            GManager.Instance?.GameOver();
+            UIManager.Instance?.ShowGameOverUI();
 
             // 必要に応じてゲームを一時停止するなどの処理
             Time.timeScale = 0f; // ゲームを一時停止
@@ -224,8 +192,8 @@ namespace BicolorWitch.Game
             if (isGameOver) return; // ゲームオーバー状態ではステージクリアしない
 
             Debug.Log("ステージクリア！", this);
-            gameManager?.StageClear();
-            uiManager?.ShowStageClearUI();
+            GManager.Instance?.StageClear();
+            UIManager.Instance?.ShowStageClearUI();
 
             // 必要に応じてゲームを一時停止するなどの処理
             Time.timeScale = 0f; // ゲームを一時停止
