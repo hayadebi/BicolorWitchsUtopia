@@ -28,7 +28,7 @@ namespace BicolorWitch.Game
     /// </summary>
     public class StageManager : MonoBehaviour
     {
-        public static StageManager Instance = null;
+        public static StageManager Instance { get; private set; }
 
         [Header("ステージ管理")]
         [SerializeField, Tooltip("ゲーム内に存在する全ステージのデータリスト")]
@@ -58,7 +58,6 @@ namespace BicolorWitch.Game
 
         private void Start()
         {
-            ;
             // 初期状態ではステージはロードされていない状態とする
             // GameManagerなどから LoadStage が呼ばれることを想定
         }
@@ -128,8 +127,8 @@ namespace BicolorWitch.Game
         {
             isGameOver = false;
             // キャラクターのHPとMPをリセット
-            HPManager.Instance.ResetAllCharacterStats();
-            CharacterSwitcher.Instance.ResetAllCharacterStats();
+            HPManager.Instance?.ResetAllCharacterStats();
+            CharacterSwitcher.Instance?.ResetAllCharacterStats();
 
             // UIの更新
             UIManager.Instance?.UpdateHP(CharacterType.SisterT, HPManager.Instance.GetCurrentHP(CharacterType.SisterT), HPManager.Instance.GetMaxHP(CharacterType.SisterT));
@@ -149,8 +148,8 @@ namespace BicolorWitch.Game
         private void CheckGameOverConditions()
         {
             // 両キャラクターのHPが0かチェック
-            bool isSisterTDead = HPManager.Instance.GetCurrentHP(CharacterType.SisterT) <= 0;
-            bool isSisterDDead = HPManager.Instance.GetCurrentHP(CharacterType.SisterD) <= 0;
+            bool isSisterTDead = HPManager.Instance != null && HPManager.Instance.GetCurrentHP(CharacterType.SisterT) <= 0;
+            bool isSisterDDead = HPManager.Instance != null && HPManager.Instance.GetCurrentHP(CharacterType.SisterD) <= 0;
 
             if (isSisterTDead && isSisterDDead)
             {
@@ -159,8 +158,8 @@ namespace BicolorWitch.Game
             }
 
             // アクティブなキャラクターの落下チェック
-            GameObject activePlayer = CharacterSwitcher.Instance.GetActiveCharacterGameObject();
-            if (activePlayer != null && activePlayer.transform.position.y < fallThresholdY)
+            GameObject activePlayer = CharacterSwitcher.Instance?.GetActiveCharacterGameObject();
+            if (CharacterSwitcher.Instance != null && activePlayer != null && activePlayer.transform.position.y < fallThresholdY)
             {
                 TriggerGameOver($"{CharacterSwitcher.Instance.GetActiveCharacterType()}キャラクターが落下しました。");
                 return;

@@ -3,21 +3,11 @@ using System;
 using System.Collections.Generic;
 using BicolorWitch.Player;
 using BicolorWitch.Game; // IHPManagerとCharacterTypeを参照するために追加
+using BicolorWitch.Manager;
 
 namespace BicolorWitch.Player
 {
-    /// <summary>
-    /// シェーダー管理機能を提供するインターフェース。
-    /// ShaderManagerが実装することを想定。
-    /// </summary>
-    public interface IShaderManager
-    {
-        /// <summary>
-        /// 指定されたキャラクターの色覚特性をシーンに適用する。
-        /// </summary>
-        /// <param name="activeCharacter">アクティブなキャラクターの種類。</param>
-        void ApplyColorPerception(CharacterType activeCharacter);
-    }
+
 
     /// <summary>
     /// キャラクターごとのデータを保持するクラス。
@@ -103,7 +93,7 @@ namespace BicolorWitch.Player
     /// </summary>
     public class CharacterSwitcher : MonoBehaviour, ICharacterSwitcher
     {
-        public static CharacterSwitcher Instance = null;
+        public static CharacterSwitcher Instance { get; private set; }
         // ICharacterSwitcherインターフェースの追加メソッドの実装
         public CharacterType GetActiveCharacterType()
         {
@@ -130,7 +120,7 @@ namespace BicolorWitch.Player
             CharacterData targetData = GetCharacterData(characterType);
             if (targetData != null && targetData.ConsumeMP(amount))
             {
-                uiManager.UpdateMP(characterType, targetData.CurrentMP, targetData.MaxMP);
+                UI.UIManager.Instance.UpdateMP(characterType, targetData.CurrentMP, targetData.MaxMP);
                 return true;
             }
             return false;
@@ -175,18 +165,13 @@ namespace BicolorWitch.Player
         private int defaultMaxMP = 100;
 
         [Header("依存コンポーネント")]
-        // Inspector: UIManagerを実装したオブジェクトを設定
-        [SerializeField, Tooltip("UI更新機能を提供するUIManagerを実装したオブジェクト")]
-        private MonoBehaviour uiManagerMono;
         // Inspector: ShaderManagerを実装したオブジェクトを設定
-        [SerializeField, Tooltip("シェーダー管理機能を提供するShaderManagerを実装したオブジェクト")]
-        private MonoBehaviour shaderManagerMono;
+
 
         // プライベート変数
         private CharacterData activeCharacterData;
         private CharacterData inactiveCharacterData;
-        private IUIManager uiManager;
-        private IShaderManager shaderManager;
+        private ShaderManager shaderManager;
         private float currentSwitchCooldown = 0f;
         private bool canSwitch = true;
 
@@ -226,9 +211,12 @@ namespace BicolorWitch.Player
             canSwitch = true;
 
             // UIの更新
-            uiManager.UpdateMP(sisterTData.Type, sisterTData.CurrentMP, sisterTData.MaxMP);
-            uiManager.UpdateMP(sisterDData.Type, sisterDData.CurrentMP, sisterDData.MaxMP);
-            uiManager.UpdateSwitchCooldownUI(currentSwitchCooldown, switchCooldownTime);
+            if (UI.UIManager.Instance != null)
+            {
+                UI.UIManager.Instance.UpdateMP(sisterTData.Type, sisterTData.CurrentMP, sisterTData.MaxMP);
+                UI.UIManager.Instance.UpdateMP(sisterDData.Type, sisterDData.CurrentMP, sisterDData.MaxMP);
+                UI.UIManager.Instance.UpdateSwitchCooldownUI(currentSwitchCooldown, switchCooldownTime);
+            }
 
             Debug.Log("CharacterSwitcher: 全キャラクターのステータスがリセットされました。", this);
         }
@@ -245,23 +233,7 @@ namespace BicolorWitch.Player
             // キャラクターデータの初期化
             sisterTData.Initialize(defaultMaxMP);
             sisterDData.Initialize(defaultMaxMP);
-
-            // 依存コンポーネントの取得とNullチェック
-            if (uiManagerMono == null || !(uiManagerMono is IUIManager))
-            {
-                Debug.LogError("UIManagerMonoが設定されていないか、IUIManagerを実装していません。", this);
-                enabled = false;
-                return;
-            }
-            uiManager = uiManagerMono as IUIManager;
-
-            if (shaderManagerMono == null || !(shaderManagerMono is IShaderManager))
-            {
-                Debug.LogError("ShaderManagerMonoが設定されていないか、IShaderManagerを実装していません。", this);
-                enabled = false;
-                return;
-            }
-            shaderManager = shaderManagerMono as IShaderManager;
+            shaderManager = ShaderManager.Instance;
         }
 
         private void Start()
@@ -283,20 +255,30 @@ namespace BicolorWitch.Player
                 enabled = false;
                 return;
             }
-            HPManager.Instance.OnHPChanged += HandleHPChanged;
-            HPManager.Instance.OnHPChanged += HandleHPChanged;
+            if (HPManager.Instance != null)
+            {
+                HPManager.Instance.OnHPChanged += HandleHPChanged;
+            }
 
             // UIの初期更新
-            uiManager.UpdateActiveCharacterUI(activeCharacterData.Type);
-            uiManager.UpdateSwitchCooldownUI(currentSwitchCooldown, switchCooldownTime);
-            uiManager.UpdateMP(sisterTData.Type, sisterTData.CurrentMP, sisterTData.MaxMP);
-            uiManager.UpdateMP(sisterDData.Type, sisterDData.CurrentMP, sisterDData.MaxMP);
+            if (UI.UIManager.Instance != null)
+            {
+                UI.UIManager.Instance.UpdateActiveCharacterUI(activeCharacterData.Type);
+                UI.UIManager.Instance.UpdateSwitchCooldownUI(currentSwitchCooldown, switchCooldownTime);
+            }
+            if (UI.UIManager.Instance != null)
+            {
+                UI.UIManager.Instance.UpdateMP(sisterTData.Type, sisterTData.CurrentMP, sisterTData.MaxMP);
+                UI.UIManager.Instance.UpdateMP(sisterDData.Type, sisterDData.CurrentMP, sisterDData.MaxMP);
+            }
         }
 
         private void OnDestroy()
         {
-            HPManager.Instance.OnHPChanged -= HandleHPChanged;
-            HPManager.Instance.OnHPChanged -= HandleHPChanged;
+            if (HPManager.Instance != null)
+            {
+                HPManager.Instance.OnHPChanged -= HandleHPChanged;
+            }
             OnCharacterSwitched = null;
         }
 
@@ -354,121 +336,40 @@ namespace BicolorWitch.Player
             SetActiveCharacter(activeCharacterData);
 
             // UIとシェーダーを更新
-            uiManager.UpdateActiveCharacterUI(activeCharacterData.Type);
-            uiManager.UpdateMP(temp.Type, temp.CurrentMP, temp.MaxMP); // 切り替わったキャラクターのMPも更新
-            uiManager.UpdateMP(activeCharacterData.Type, activeCharacterData.CurrentMP, activeCharacterData.MaxMP);
+                        UI.UIManager.Instance?.UpdateActiveCharacterUI(activeCharacterData.Type);
+            UI.UIManager.Instance.UpdateMP(temp.Type, temp.CurrentMP, temp.MaxMP); // 切り替わったキャラクターのMPも更新
+            UI.UIManager.Instance.UpdateMP(activeCharacterData.Type, activeCharacterData.CurrentMP, activeCharacterData.MaxMP);
             shaderManager.ApplyColorPerception(activeCharacterData.Type);
 
             OnCharacterSwitched?.Invoke(activeCharacterData.Type);
-
             Debug.Log($"キャラクターを {activeCharacterData.Type} に切り替えました。", this);
             return true;
         }
 
         /// <summary>
-        /// アクティブキャラクターを設定し、GameObjectの有効/無効を切り替える。
+        /// アクティブなキャラクターを設定し、GameObjectの表示/非表示を切り替える。
         /// </summary>
-        /// <param name="characterToActivate">アクティブにするキャラクターデータ。</param>
-        private void SetActiveCharacter(CharacterData characterToActivate)
+        /// <param name="character">アクティブにするキャラクターデータ。</param>
+        private void SetActiveCharacter(CharacterData character)
         {
-            if (characterToActivate == null) return;
-
-            // 現在のアクティブキャラクターを非アクティブにする
-            if (activeCharacterData != null && activeCharacterData != characterToActivate)
+            if (activeCharacterData != null && activeCharacterData.CharacterGameObject != null)
             {
                 activeCharacterData.CharacterGameObject.SetActive(false);
                 activeCharacterData.Controller.enabled = false; // PlayerControllerも無効化
             }
 
-            activeCharacterData = characterToActivate;
-            inactiveCharacterData = (activeCharacterData == sisterTData) ? sisterDData : sisterTData;
+            activeCharacterData = character;
+            inactiveCharacterData = (character.Type == sisterTData.Type) ? sisterDData : sisterTData;
 
-            activeCharacterData.CharacterGameObject.SetActive(true);
-            activeCharacterData.Controller.enabled = true;
-
-            shaderManager.ApplyColorPerception(activeCharacterData.Type);
-            uiManager.UpdateActiveCharacterUI(activeCharacterData.Type);
-        }
-
-        /// <summary>
-        /// キャラクターのMPを回復する。
-        /// </summary>
-        /// <param name="characterType">回復するキャラクターの種類。</param>
-        /// <param name="amount">回復量。</param>
-        public void RecoverMP(CharacterType characterType, int amount)
-        {
-            if (sisterTData.Type == characterType) sisterTData.RecoverMP(amount);
-            else if (sisterDData.Type == characterType) sisterDData.RecoverMP(amount);
-            else return;
-
-            // UI更新
-            uiManager.UpdateMP(characterType, GetCharacterData(characterType).CurrentMP, GetCharacterData(characterType).MaxMP);
-        }
-
-        /// <summary>
-        /// 全てのキャラクターのHPとMPをリセットする。
-        /// ステージ開始時などに呼び出すことを想定。
-        /// </summary>
-        public void ResetAllCharacterStates()
-        {
-            sisterTData.ResetMP();
-            sisterDData.ResetMP();
-
-            // HPはIHPManager経由でリセット
-            HPManager.Instance.ResetHP(sisterTData.Type);
-            HPManager.Instance.ResetHP(sisterTData.Type);
-
-            // UI更新
-            uiManager.UpdateMP(sisterTData.Type, sisterTData.CurrentMP, sisterTData.MaxMP);
-            uiManager.UpdateMP(sisterDData.Type, sisterDData.CurrentMP, sisterDData.MaxMP);
-
-            // 初期アクティブキャラクターを再設定
-            if (!sisterTData.IsDead)
+            if (activeCharacterData != null && activeCharacterData.CharacterGameObject != null)
             {
-                SetActiveCharacter(sisterTData);
+                activeCharacterData.CharacterGameObject.SetActive(true);
+                activeCharacterData.Controller.enabled = true; // PlayerControllerを有効化
             }
-            else if (!sisterDData.IsDead)
-            {
-                SetActiveCharacter(sisterDData);
-            }
-            else
-            {
-                Debug.LogError("ResetAllCharacterStates後、両方のキャラクターが死亡しています。", this);
-                enabled = false;
-                return;
-            }
-
-            currentSwitchCooldown = 0f;
-            canSwitch = true;
-            uiManager.UpdateSwitchCooldownUI(currentSwitchCooldown, switchCooldownTime);
         }
 
         /// <summary>
-        /// 指定されたキャラクターのPlayerControllerを取得する。
-        /// </summary>
-        /// <param name="characterType">キャラクターの種類。</param>
-        /// <returns>PlayerControllerインスタンス。</returns>
-        public PlayerController GetPlayerController(CharacterType characterType)
-        {
-            if (sisterTData.Type == characterType) return sisterTData.Controller;
-            if (sisterDData.Type == characterType) return sisterDData.Controller;
-            return null;
-        }
-
-        /// <summary>
-        /// 指定されたキャラクターのHPManagerを取得する。
-        /// </summary>
-        /// <param name="characterType">キャラクターの種類。</param>
-        /// <returns>IHPManagerインスタンス。</returns>
-        public CharacterHPData GetHPManager(CharacterType characterType)
-        {
-            if (sisterTData.Type == characterType) return HPManager.Instance.tCharacterHPData;
-            if (sisterDData.Type == characterType) return HPManager.Instance.dCharacterHPData;
-            return null;
-        }
-
-        /// <summary>
-        /// キャラクター切り替えクールタイムを更新する。
+        /// 切り替えクールタイムを更新する。
         /// </summary>
         private void UpdateSwitchCooldown()
         {
@@ -479,25 +380,26 @@ namespace BicolorWitch.Player
                 {
                     currentSwitchCooldown = 0f;
                     canSwitch = true;
+                    Debug.Log("キャラクター切り替えクールタイム終了。", this);
                 }
-                uiManager.UpdateSwitchCooldownUI(currentSwitchCooldown, switchCooldownTime);
+                if (UI.UIManager.Instance != null)
+                {
+                    UI.UIManager.Instance.UpdateSwitchCooldownUI(currentSwitchCooldown, switchCooldownTime);
+                }
             }
         }
 
         /// <summary>
-        /// HP変更イベントを処理する。
+        /// HP変更イベントのハンドラ。
+        /// キャラクターが死亡した場合の処理。
         /// </summary>
-        /// <param name="characterType">HPが変更されたキャラクターの種類。</param>
-        /// <param name="currentHP">現在のHP。</param>
-        /// <param name="maxHP">最大HP。</param>
         private void HandleHPChanged(CharacterType characterType, int currentHP, int maxHP)
         {
-            // UI更新はUIManagerに任せる
-            // ここではキャラクターの死亡状態をチェックし、必要であれば切り替えを促す
-            if (currentHP <= 0)
+            // 死亡したキャラクターがアクティブな場合、自動切り替えを試みる
+            if (characterType == activeCharacterData.Type && currentHP <= 0)
             {
-                Debug.Log($"{characterType} のHPが0になりました。", this);
-                // アクティブキャラクターが死亡した場合の切り替えはUpdateで処理される
+                Debug.Log($"{characterType} のHPが0になりました。自動切り替えを試みます。", this);
+                TrySwitchCharacter();
             }
         }
     }

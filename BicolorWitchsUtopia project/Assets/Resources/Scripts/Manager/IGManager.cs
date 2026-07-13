@@ -1,22 +1,21 @@
-// IGManager.cs (ˆË‘¶ŠÖŒW‚Ì‚½‚ß“¯¶¬)
 using BicolorWitch.Player;
 using System;
 
 namespace BicolorWitch.Game
 {
     /// <summary>
-    /// ƒQ[ƒ€ŠÇ—‹@”\‚ğ’ñ‹Ÿ‚·‚éƒCƒ“ƒ^[ƒtƒF[ƒXB
-    /// GameManager‚ªÀ‘•‚·‚é‚±‚Æ‚ğ‘z’èB
+    /// ã‚²ãƒ¼ãƒ ç®¡ç†æ©Ÿèƒ½ã‚’æä¾›ã™ã‚‹ã‚¤ãƒ³ã‚¿ãƒ¼ãƒ•ã‚§ãƒ¼ã‚¹ã€‚
+    /// GameManagerãŒå®Ÿè£…ã™ã‚‹ã“ã¨ã‚’æƒ³å®šã€‚
     /// </summary>
     public interface IGManager
     {
         /// <summary>
-        /// ƒQ[ƒ€ƒI[ƒo[ˆ—‚ğŠJn‚·‚éB
+        /// ã‚²ãƒ¼ãƒ ã‚ªãƒ¼ãƒãƒ¼å‡¦ç†ã‚’é–‹å§‹ã™ã‚‹ã€‚
         /// </summary>
         void GameOver();
 
         /// <summary>
-        /// ƒXƒe[ƒWƒŠƒZƒbƒgˆ—‚ğŠJn‚·‚éB
+        /// ã‚¹ãƒ†ãƒ¼ã‚¸ãƒªã‚»ãƒƒãƒˆå‡¦ç†ã‚’é–‹å§‹ã™ã‚‹ã€‚
         /// </summary>
         void ResetStage();
 

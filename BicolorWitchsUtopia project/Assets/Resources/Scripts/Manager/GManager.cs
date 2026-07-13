@@ -6,19 +6,17 @@ using BicolorWitch.UI;
 
 namespace BicolorWitch.Core
 {
-    public interface IGameManager { };
     /// <summary>
     /// ゲーム全体の進行を管理するクラス。
     /// シングルトンパターンを適用し、ゲーム全体で唯一のインスタンスであることを保証する。
     /// </summary>
-    public class GManager : MonoBehaviour
+    public class GManager : MonoBehaviour, IGManager
     {
-        public static GManager Instance = null;
-
-        [Header("依存コンポーネント")]
-        [SerializeField, Tooltip("ステージ管理機能を提供するStageManagerを実装したオブジェクト")]
+        public static GManager Instance { get; private set; }
 
         public GameState currentGameState = GameState.Title;
+
+        public event Action<GameState> OnGameStateChanged;
 
         public enum GameState
         {
@@ -27,9 +25,12 @@ namespace BicolorWitch.Core
             Playing,
             GameOver,
             StageClear,
-            Pause
+            Pause,
+            Dialogue
         }
-
+        public void CallUnloadUnusedAssets(){
+            Resources.UnloadUnusedAssets();
+        }
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -57,7 +58,7 @@ namespace BicolorWitch.Core
 
             Debug.Log($"ゲーム状態が {currentGameState} から {newState} に変更されました。", this);
             currentGameState = newState;
-
+            OnGameStateChanged?.Invoke(newState);
             switch (currentGameState)
             {
                 case GameState.Title:
@@ -109,6 +110,15 @@ namespace BicolorWitch.Core
             SetGameState(GameState.GameOver);
             UIManager.Instance?.ShowGameOverUI();
             // 必要に応じてリトライボタン表示など
+        }
+
+        /// <summary>
+        /// IGManagerインターフェースの実装。ステージリセット処理を開始する。
+        /// </summary>
+        public void ResetStage()
+        {
+            StageManager.Instance?.ResetStageState();
+            SetGameState(GameState.Playing);
         }
 
         /// <summary>

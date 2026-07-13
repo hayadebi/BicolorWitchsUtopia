@@ -14,8 +14,7 @@ namespace BicolorWitch.Game
         void ShowPauseUI();
         void HideAllGameUIs();
         void UpdateHP(CharacterType characterType, float currentHP, float maxHP);
-        void UpdateMP(CharacterType characterType, float currentMP, float maxMP);
-        void UpdateDashCooldown(CharacterType characterType, float currentCooldown, float maxCooldown);
+
         void ShowGamePlayUI();
 
         /// <summary>
@@ -25,11 +24,11 @@ namespace BicolorWitch.Game
         void UpdateActiveCharacterUI(CharacterType activeCharacter);
 
         /// <summary>
-        /// キャラクター切り替えクールタイムのUIを更新する。
+        /// 統合クールタイムのUIを更新する。
         /// </summary>
         /// <param name="currentCooldown">現在のクールタイム。</param>
         /// <param name="maxCooldown">最大クールタイム。</param>
-        void UpdateSwitchCooldownUI(float currentCooldown, float maxCooldown);
+        void UpdateCooldownUI(float currentCooldown, float maxCooldown);
 
         /// <summary>
         /// 指定されたキャラクターのMPをUIに表示する。

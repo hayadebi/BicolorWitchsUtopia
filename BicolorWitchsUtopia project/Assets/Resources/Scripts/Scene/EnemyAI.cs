@@ -1,4 +1,3 @@
-// EnemyAI.cs
 using UnityEngine;
 using System;
 using BicolorWitch.Player;
@@ -7,51 +6,51 @@ using BicolorWitch.Game;
 namespace BicolorWitch.Enemy
 {
     /// <summary>
-    /// “GƒLƒƒƒ‰ƒNƒ^[‚ÌƒCƒ“ƒ^[ƒtƒF[ƒXB
+    /// æ•µã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®ã‚¤ãƒ³ã‚¿ãƒ¼ãƒ•ã‚§ãƒ¼ã‚¹ã€‚
     /// </summary>
     public interface IEnemy
     {
         /// <summary>
-        /// “G‚ªƒ_ƒ[ƒW‚ğó‚¯‚½‚Æ‚«‚ÉŒÄ‚Ño‚³‚ê‚éB
+        /// æ•µãŒãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’å—ã‘ãŸã¨ãã«å‘¼ã³å‡ºã•ã‚Œã‚‹ã€‚
         /// </summary>
-        /// <param name="amount">ƒ_ƒ[ƒW—ÊB</param>
+        /// <param name="amount">ãƒ€ãƒ¡ãƒ¼ã‚¸é‡ã€‚</param>
         void TakeDamage(int amount);
 
         /// <summary>
-        /// “G‚ª€–S‚µ‚½‚Æ‚«‚É”­‰Î‚·‚éƒCƒxƒ“ƒgB
+        /// æ•µãŒæ­»äº¡ã—ãŸã¨ãã«ç™ºç«ã™ã‚‹ã‚¤ãƒ™ãƒ³ãƒˆã€‚
         /// </summary>
         event Action OnEnemyDied;
     }
 
     /// <summary>
-    /// “GƒLƒƒƒ‰ƒNƒ^[‚ÌAI‚Æ“®ì‚ğŠÇ—‚·‚éƒNƒ‰ƒXB
+    /// æ•µã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®AIã¨å‹•ä½œã‚’ç®¡ç†ã™ã‚‹ã‚¯ãƒ©ã‚¹ã€‚
     /// </summary>
     public class EnemyAI : MonoBehaviour, IEnemy
     {
-        [Header("“G‚ÌƒXƒe[ƒ^ƒX")]
-        [SerializeField, Tooltip("“G‚ÌÅ‘åHP")]
+        [Header("æ•µã®ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹")]
+        [SerializeField, Tooltip("æ•µã®æœ€å¤§HP")]
         private int maxHP = 50;
-        [SerializeField, Tooltip("“G‚ÌŒ»İ‚ÌHP (ƒfƒoƒbƒO—p)")]
+        [SerializeField, Tooltip("æ•µã®ç¾åœ¨ã®HP (ãƒ‡ãƒãƒƒã‚°ç”¨)")]
         private int currentHP;
-        [SerializeField, Tooltip("“G‚ÌˆÚ“®‘¬“x")]
+        [SerializeField, Tooltip("æ•µã®ç§»å‹•é€Ÿåº¦")]
         private float moveSpeed = 2.0f;
-        [SerializeField, Tooltip("ƒvƒŒƒCƒ„[‚Ö‚ÌUŒ‚—Í")]
+        [SerializeField, Tooltip("ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã¸ã®æ”»æ’ƒåŠ›")]
         private int attackDamage = 10;
-        [SerializeField, Tooltip("ƒvƒŒƒCƒ„[‚ğŒŸ’m‚·‚é”ÍˆÍ")]
+        [SerializeField, Tooltip("ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’æ¤œçŸ¥ã™ã‚‹ç¯„å›²")]
         private float detectionRange = 5.0f;
-        [SerializeField, Tooltip("ƒvƒŒƒCƒ„[‚ÉUŒ‚‚·‚é”ÍˆÍ")]
+        [SerializeField, Tooltip("ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã«æ”»æ’ƒã™ã‚‹ç¯„å›²")]
         private float attackRange = 1.5f;
-        [SerializeField, Tooltip("UŒ‚ƒN[ƒ‹ƒ^ƒCƒ€")]
+        [SerializeField, Tooltip("æ”»æ’ƒã‚¯ãƒ¼ãƒ«ã‚¿ã‚¤ãƒ ")]
         private float attackCooldown = 2.0f;
 
-        [Header("ƒAƒjƒ[ƒVƒ‡ƒ“İ’è")]
-        [SerializeField, Tooltip("“G‚ÌAnimatorƒRƒ“ƒ|[ƒlƒ“ƒg")]
+        [Header("ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¨­å®š")]
+        [SerializeField, Tooltip("æ•µã®Animatorã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆ")]
         private Animator animator;
-        [SerializeField, Tooltip("UŒ‚ƒAƒjƒ[ƒVƒ‡ƒ“‚ÌƒgƒŠƒK[–¼ƒŠƒXƒg")]
+        [SerializeField, Tooltip("æ”»æ’ƒã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã®ãƒˆãƒªã‚¬ãƒ¼åãƒªã‚¹ãƒˆ")]
         private string[] attackAnimationTriggers = { "Attack1", "Attack2" };
-        [SerializeField, Tooltip("ˆÚ“®ƒAƒjƒ[ƒVƒ‡ƒ“‚Ìƒpƒ‰ƒ[ƒ^–¼ (float)")]
+        [SerializeField, Tooltip("ç§»å‹•ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã®ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿å (float)")]
         private string moveSpeedParameter = "MoveSpeed";
-        [SerializeField, Tooltip("€–SƒAƒjƒ[ƒVƒ‡ƒ“‚ÌƒgƒŠƒK[–¼")]
+        [SerializeField, Tooltip("æ­»äº¡ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã®ãƒˆãƒªã‚¬ãƒ¼å")]
         private string dieAnimationTrigger = "Die";
 
         private Transform playerTransform;
@@ -73,7 +72,7 @@ namespace BicolorWitch.Enemy
                 animator = GetComponent<Animator>();
                 if (animator == null)
                 {
-                    Debug.LogWarning("AnimatorƒRƒ“ƒ|[ƒlƒ“ƒg‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñBƒAƒjƒ[ƒVƒ‡ƒ“‚ÍÄ¶‚³‚ê‚Ü‚¹‚ñB", this);
+                    Debug.LogWarning("Animatorã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆãŒè¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã¯å†ç”Ÿã•ã‚Œã¾ã›ã‚“ã€‚", this);
                 }
             }
         }
@@ -82,39 +81,41 @@ namespace BicolorWitch.Enemy
         {
             if (isDead) return;
 
-            // ƒJƒƒ‰‚É‰f‚Á‚Ä‚¢‚È‚¢ê‡‚Í“®ì‚ğ’â~
+            // ã‚«ãƒ¡ãƒ©ã«æ˜ ã£ã¦ã„ãªã„å ´åˆã¯å‹•ä½œã‚’åœæ­¢
             if (!IsVisibleFromCamera())
             {
                 if (animator != null) animator.SetFloat(moveSpeedParameter, 0f);
                 return;
             }
 
-            // ƒvƒŒƒCƒ„[‚ÌˆÊ’u‚ğæ“¾
+            // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ä½ç½®ã‚’å–å¾—
+            if (CharacterSwitcher.Instance == null) return;
             GameObject activePlayer = CharacterSwitcher.Instance.GetActiveCharacterGameObject();
-            if (activePlayer == null) return; // ƒvƒŒƒCƒ„[‚ªŒ©‚Â‚©‚ç‚È‚¢ê‡‚Í‰½‚à‚µ‚È‚¢
+            if (activePlayer == null) return; // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒè¦‹ã¤ã‹ã‚‰ãªã„å ´åˆã¯ä½•ã‚‚ã—ãªã„
 
             playerTransform = activePlayer.transform;
+            if (playerTransform == null) return; // playerTransformãŒnullã®å ´åˆã‚‚å‡¦ç†ã‚’ä¸­æ–­
 
             float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
 
             if (distanceToPlayer <= attackRange)
             {
-                // UŒ‚”ÍˆÍ“àFUŒ‚‚ğ‚İ‚é
+                // æ”»æ’ƒç¯„å›²å†…ï¼šæ”»æ’ƒã‚’è©¦ã¿ã‚‹
                 AttackPlayer();
                 if (animator != null) animator.SetFloat(moveSpeedParameter, 0f);
             }
             else if (distanceToPlayer <= detectionRange)
             {
-                // ŒŸ’m”ÍˆÍ“àFƒvƒŒƒCƒ„[‚ğ’Ç‚¢‚©‚¯‚é
+                // æ¤œçŸ¥ç¯„å›²å†…ï¼šãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’è¿½ã„ã‹ã‘ã‚‹
                 ChasePlayer();
             }
             else
             {
-                // ”ÍˆÍŠOF‘Ò‹@
+                // ç¯„å›²å¤–ï¼šå¾…æ©Ÿ
                 if (animator != null) animator.SetFloat(moveSpeedParameter, 0f);
             }
 
-            // UŒ‚ƒN[ƒ‹ƒ^ƒCƒ€‚ÌXV
+            // æ”»æ’ƒã‚¯ãƒ¼ãƒ«ã‚¿ã‚¤ãƒ ã®æ›´æ–°
             if (currentAttackCooldown > 0)
             {
                 currentAttackCooldown -= Time.deltaTime;
@@ -122,26 +123,26 @@ namespace BicolorWitch.Enemy
         }
 
         /// <summary>
-        /// “G‚ªƒJƒƒ‰‚É‰f‚Á‚Ä‚¢‚é‚©”»’è‚·‚éB
+        /// æ•µãŒã‚«ãƒ¡ãƒ©ã«æ˜ ã£ã¦ã„ã‚‹ã‹åˆ¤å®šã™ã‚‹ã€‚
         /// </summary>
         private bool IsVisibleFromCamera()
         {
-            if (enemyRenderer == null || mainCamera == null) return true; // Renderer‚ª‚È‚¢ê‡‚Íí‚ÉƒAƒNƒeƒBƒu‚Æ‚·‚é
+            if (enemyRenderer == null || mainCamera == null) return true; // RendererãŒãªã„å ´åˆã¯å¸¸ã«ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã¨ã™ã‚‹
 
             Plane[] planes = GeometryUtility.CalculateFrustumPlanes(mainCamera);
             return GeometryUtility.TestPlanesAABB(planes, enemyRenderer.bounds);
         }
 
         /// <summary>
-        /// “G‚ªƒ_ƒ[ƒW‚ğó‚¯‚éˆ—B
+        /// æ•µãŒãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’å—ã‘ã‚‹å‡¦ç†ã€‚
         /// </summary>
-        /// <param name="amount">ƒ_ƒ[ƒW—ÊB</param>
+        /// <param name="amount">ãƒ€ãƒ¡ãƒ¼ã‚¸é‡ã€‚</param>
         public void TakeDamage(int amount)
         {
             if (isDead) return;
 
             currentHP = Mathf.Max(0, currentHP - amount);
-            Debug.Log($"{gameObject.name} ‚ª {amount} ƒ_ƒ[ƒW‚ğó‚¯‚Ü‚µ‚½Bc‚èHP: {currentHP}", this);
+            Debug.Log($"{gameObject.name} ãŒ {amount} ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’å—ã‘ã¾ã—ãŸã€‚æ®‹ã‚ŠHP: {currentHP}", this);
 
             if (currentHP <= 0)
             {
@@ -150,14 +151,14 @@ namespace BicolorWitch.Enemy
         }
 
         /// <summary>
-        /// ƒvƒŒƒCƒ„[‚ğ’Ç‚¢‚©‚¯‚éˆ—B
+        /// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’è¿½ã„ã‹ã‘ã‚‹å‡¦ç†ã€‚
         /// </summary>
         private void ChasePlayer()
         {
             Vector3 direction = (playerTransform.position - transform.position).normalized;
             transform.position += direction * moveSpeed * Time.deltaTime;
-            // “G‚ÌŒü‚«‚ğƒvƒŒƒCƒ„[‚Ì•ûŒü‚Ö
-            transform.LookAt(playerTransform);
+            // æ•µã®å‘ãã‚’ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®æ–¹å‘ã¸
+            if (playerTransform != null) { transform.LookAt(playerTransform); }
 
             if (animator != null)
             {
@@ -166,17 +167,20 @@ namespace BicolorWitch.Enemy
         }
 
         /// <summary>
-        /// ƒvƒŒƒCƒ„[‚ğUŒ‚‚·‚éˆ—B
+        /// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’æ”»æ’ƒã™ã‚‹å‡¦ç†ã€‚
         /// </summary>
         private void AttackPlayer()
         {
             if (currentAttackCooldown <= 0)
             {
-                Debug.Log($"{gameObject.name} ‚ªƒvƒŒƒCƒ„[({CharacterSwitcher.Instance.GetActiveCharacterType()})‚ğUŒ‚I", this);
-                HPManager.Instance.ApplyDamage(CharacterSwitcher.Instance.GetActiveCharacterType(), attackDamage);
+                if (CharacterSwitcher.Instance != null && HPManager.Instance != null)
+                {
+                    Debug.Log($"{gameObject.name} ãŒãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼({CharacterSwitcher.Instance.GetActiveCharacterType()})ã‚’æ”»æ’ƒï¼", this);
+                    HPManager.Instance.ApplyDamage(CharacterSwitcher.Instance.GetActiveCharacterType(), attackDamage);
+                }
                 currentAttackCooldown = attackCooldown;
 
-                // ƒ‰ƒ“ƒ_ƒ€‚ÈUŒ‚ƒAƒjƒ[ƒVƒ‡ƒ“‚ğÄ¶
+                // ãƒ©ãƒ³ãƒ€ãƒ ãªæ”»æ’ƒã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’å†ç”Ÿ
                 if (animator != null && attackAnimationTriggers.Length > 0)
                 {
                     int randomIndex = UnityEngine.Random.Range(0, attackAnimationTriggers.Length);
@@ -186,12 +190,12 @@ namespace BicolorWitch.Enemy
         }
 
         /// <summary>
-        /// “G‚ª€–S‚µ‚½‚Æ‚«‚Ìˆ—B
+        /// æ•µãŒæ­»äº¡ã—ãŸã¨ãã®å‡¦ç†ã€‚
         /// </summary>
         private void Die()
         {
             isDead = true;
-            Debug.Log($"{gameObject.name} ‚ª“|‚³‚ê‚Ü‚µ‚½I", this);
+            Debug.Log($"{gameObject.name} ãŒå€’ã•ã‚Œã¾ã—ãŸï¼", this);
             OnEnemyDied?.Invoke();
 
             if (animator != null)
@@ -199,7 +203,7 @@ namespace BicolorWitch.Enemy
                 animator.SetTrigger(dieAnimationTrigger);
             }
 
-            // ƒAƒjƒ[ƒVƒ‡ƒ“Ä¶Œã‚É”jŠü‚·‚é‚½‚ßA­‚µ’x‰„‚³‚¹‚é (—á: 2•bŒã)
+            // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å†ç”Ÿå¾Œã«ç ´æ£„ã™ã‚‹ãŸã‚ã€å°‘ã—é…å»¶ã•ã›ã‚‹ (ä¾‹: 2ç§’å¾Œ)
             Destroy(gameObject, 2.0f);
         }
     }

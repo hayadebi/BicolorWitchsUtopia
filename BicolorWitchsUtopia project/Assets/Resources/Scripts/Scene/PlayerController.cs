@@ -1,54 +1,13 @@
 using UnityEngine;
 using System;
-using BicolorWitch.Player;
-using BicolorWitch.Core; // IHPManagerとCharacterTypeを参照するために追加
+using BicolorWitch.Core;
+using BicolorWitch.Magic;
+using BicolorWitch.InputManagement;
 
 namespace BicolorWitch.Player
 {
     /// <summary>
-    /// プレイヤーの入力イベントを提供するインターフェース。
-    /// InputManagerが実装することを想定。
-    /// </summary>
-    public interface IInputProvider
-    {
-        event Action<float> OnMoveInput;
-        event Action OnJumpInput;
-        event Action OnBasicAttackInput;
-        event Action OnSwitchCharacterInput;
-        event Action OnMagicInput1;
-        event Action OnMagicInput2;
-        event Action OnDashInputStart; // ダッシュ開始
-        event Action OnDashInputEnd;   // ダッシュ終了
-    }
-
-    /// <summary>
-    /// 魔法システム機能を提供するインターフェース。
-    /// MagicSystemが実装することを想定。
-    /// </summary>
-    public interface IMagicSystem
-    {
-        /// <summary>
-    /// 指定されたスロットの魔法の発動を試みる。
-    /// </summary>
-        /// <param name="slotIndex">魔法スロットのインデックス (例: 1または2)。</param>
-        /// <returns>魔法の発動が成功した場合はtrue、失敗した場合はfalse。</returns>
-        bool TryCastMagic(int slotIndex);
-    }
-
-    /// <summary>
-    /// ゲームオーバーイベントを通知するインターフェース。
-    /// GameManagerが実装することを想定。
-    /// </summary>
-    public interface IGameOverNotifier
-    {
-        /// <summary>
-    /// ゲームオーバーを通知するイベント。
-    /// </summary>
-        event Action OnGameOver;
-    }
-
-    /// <summary>
-    /// プレイヤーキャラクター（姉妹）の移動、ジャンプ、基本攻撃、切り替え処理を管理する。
+    /// プレイヤーキャラクター（姉妹）の移動、ジャンプ、基本攻撃、切り替え処理を管理する。//
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(Animator))]
@@ -56,174 +15,63 @@ namespace BicolorWitch.Player
     {
         // Inspector設定項目
         [Header("移動設定")]
-        // Inspector: プレイヤーの通常移動速度を設定
         [SerializeField, Tooltip("プレイヤーの通常移動速度")]
         private float moveSpeed = 5f;
-        // Inspector: プレイヤーのジャンプ力を設定
         [SerializeField, Tooltip("プレイヤーのジャンプ力")]
         private float jumpForce = 10f;
-        // Inspector: 地面判定用のレイヤーマスクを設定
         [SerializeField, Tooltip("地面として判定するレイヤーマスク")]
         private LayerMask groundLayer;
-        // Inspector: 地面判定用のRaycastの原点からのオフセットを設定
         [SerializeField, Tooltip("地面判定用のRaycastの原点からのオフセット")]
         private Vector2 groundCheckOffset = new Vector2(0f, -0.5f);
-        // Inspector: 地面判定用のRaycastの長さを設定
         [SerializeField, Tooltip("地面判定用のRaycastの長さ")]
         private float groundCheckDistance = 0.1f;
 
         [Header("ダッシュ設定")]
-        // Inspector: プレイヤーのダッシュ移動速度を設定
         [SerializeField, Tooltip("プレイヤーのダッシュ移動速度")]
         private float dashSpeed = 8f;
-        // Inspector: ダッシュクールタイムの最大値を設定
         [SerializeField, Tooltip("ダッシュクールタイムの最大値")]
         private float maxDashCooldown = 3f;
-        public float MaxDashCooldown => maxDashCooldown; // Public getterを追加
-        // Inspector: ダッシュ中のクールタイム増加速度を設定
+        public float MaxDashCooldown => maxDashCooldown;
         [SerializeField, Tooltip("ダッシュ中のクールタイム増加速度")]
         private float dashCooldownIncreaseRate = 1f;
-        // Inspector: ダッシュしていない時のクールタイム回復速度を設定
         [SerializeField, Tooltip("ダッシュしていない時のクールタイム回復速度")]
         private float dashCooldownRecoveryRate = 0.5f;
 
         [Header("攻撃設定")]
-        // Inspector: 基本攻撃のクールタイムを設定
         [SerializeField, Tooltip("基本攻撃のクールタイム")]
         private float basicAttackCooldown = 0.5f;
 
         [Header("ゲームオーバー設定")]
-        // Inspector: プレイヤーがこのY座標を下回るとゲームオーバーになる
         [SerializeField, Tooltip("プレイヤーがこのY座標を下回るとゲームオーバーになる閾値")]
         private float fallThresholdY = -10f;
-
-        [Header("依存コンポーネント")]
-        // Inspector: InputManagerを実装したオブジェクトを設定
-        [SerializeField, Tooltip("入力イベントを提供するInputManagerを実装したオブジェクト")]
-        private MonoBehaviour inputProviderMono;
-        // Inspector: ゲームオーバーを通知するオブジェクトを設定
-        [SerializeField, Tooltip("ゲームオーバーを通知するIGameOverNotifierを実装したオブジェクト")]
-        private MonoBehaviour gameOverNotifierMono;
 
         // プライベート変数
         private Rigidbody2D rb;
         private Animator animator;
-        private IInputProvider inputProvider;
-        private IGameOverNotifier gameOverNotifier;
 
         private float currentMoveInput = 0f;
         private bool isGrounded;
         private bool canBasicAttack = true;
         private float basicAttackTimer = 0f;
-        private bool isDead = false; // PlayerController自身の死亡状態（操作不能状態）
-        private bool isDashing = false; // ダッシュ中かどうか
+        private bool isDead = false;
+        private bool isDashing = false;
         private float currentDashCooldown = 0f;
 
-        // ゲームオーバーイベント
-        public event Action OnGameOverEvent;
         // ダッシュクールタイムが変更されたことを通知するイベント (現在のクールタイム, 最大クールタイム)
         public event Action<float, float> OnDashCooldownChanged;
 
         private const string ANIM_PARAM_SPEED = "Speed";
         private const string ANIM_PARAM_JUMP = "Jump";
         private const string ANIM_PARAM_ATTACK = "Attack";
-        private const string ANIM_PARAM_DEAD = "Dead"; // 死亡アニメーション用
+        private const string ANIM_PARAM_DEAD = "Dead";
 
-        private void Awake()
-        {
-            rb = GetComponent<Rigidbody2D>();
-            animator = GetComponent<Animator>();
-
-            // 依存コンポーネントの取得とNullチェック
-            if (inputProviderMono == null || !(inputProviderMono is IInputProvider))
-            {
-                Debug.LogError("InputProviderMonoが設定されていないか、IInputProviderを実装していません。", this);
-                enabled = false; // スクリプトを無効化
-                return;
-            }
-            inputProvider = inputProviderMono as IInputProvider;
-
-            if (gameOverNotifierMono == null || !(gameOverNotifierMono is IGameOverNotifier))
-            {
-                Debug.LogError("GameOverNotifierMonoが設定されていないか、IGameOverNotifierを実装していません。", this);
-                enabled = false;
-                return;
-            }
-            gameOverNotifier = gameOverNotifierMono as IGameOverNotifier;
-        }
-
-        private void OnEnable()
-        {
-            // イベント購読
-            if (inputProvider != null)
-            {
-                inputProvider.OnMoveInput += HandleMoveInput;
-                inputProvider.OnJumpInput += HandleJumpInput;
-                inputProvider.OnBasicAttackInput += HandleBasicAttackInput;
-                inputProvider.OnSwitchCharacterInput += HandleSwitchCharacterInput;
-                inputProvider.OnMagicInput1 += HandleMagicInput1;
-                inputProvider.OnMagicInput2 += HandleMagicInput2;
-                inputProvider.OnDashInputStart += HandleDashInputStart;
-                inputProvider.OnDashInputEnd += HandleDashInputEnd;
-            }
-        }
-
-        private void OnDisable()
-        {
-            // イベント購読解除
-            if (inputProvider != null)
-            {
-                inputProvider.OnMoveInput -= HandleMoveInput;
-                inputProvider.OnJumpInput -= HandleJumpInput;
-                inputProvider.OnBasicAttackInput -= HandleBasicAttackInput;
-                inputProvider.OnSwitchCharacterInput -= HandleSwitchCharacterInput;
-                inputProvider.OnMagicInput1 -= HandleMagicInput1;
-                inputProvider.OnMagicInput2 -= HandleMagicInput2;
-                inputProvider.OnDashInputEnd -= HandleDashInputEnd;
-                inputProvider.OnDashInputStart -= HandleDashInputStart;
-            }
-        }
-
-        private void Start()
-        {
-            // 初期クールタイム状態を通知
-            OnDashCooldownChanged?.Invoke(currentDashCooldown, maxDashCooldown);
-        }
-
-        private void Update()
-        {
-            if (isDead||GManager.Instance.currentGameState!=GManager.GameState.Playing) return; // 死亡状態なら操作を受け付けない
-
-            CheckGroundStatus();
-            UpdateBasicAttackCooldown();
-            UpdateDashCooldown(); // ダッシュクールタイムの更新
-            ApplyMovement();
-            UpdateAnimation();
-            CheckFallForGameOver();
-
-            // 全てのキャラクターが死亡している場合もゲームオーバー
-            if (CharacterSwitcher.Instance != null && CharacterSwitcher.Instance.AreAllCharactersDead)
-            {
-                TriggerGameOver();
-            }
-        }
-
-        /// <summary>
-        /// 移動入力を処理する。
-        /// </summary>
-        /// <param name="input">移動方向（-1:左, 0:停止, 1:右）</param>
         private void HandleMoveInput(float input)
         {
-            if (isDead) return;
             currentMoveInput = input;
         }
 
-        /// <summary>
-        /// ジャンプ入力を処理する。
-        /// </summary>
         private void HandleJumpInput()
         {
-            if (isDead) return;
             if (isGrounded)
             {
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
@@ -231,89 +79,121 @@ namespace BicolorWitch.Player
             }
         }
 
-        /// <summary>
-        /// 基本攻撃入力を処理する。
-        /// </summary>
         private void HandleBasicAttackInput()
         {
-            if (isDead) return;
             if (canBasicAttack)
             {
                 animator.SetTrigger(ANIM_PARAM_ATTACK);
                 canBasicAttack = false;
                 basicAttackTimer = basicAttackCooldown;
-                // TODO: 攻撃判定の生成やダメージ処理は、アニメーションイベントや別のコンポーネントで行うことを想定
+                // 実際の攻撃処理（当たり判定など）はアニメーションイベント等で呼び出す
             }
         }
 
-        /// <summary>
-        /// キャラクター切り替え入力を処理する。
-        /// </summary>
         private void HandleSwitchCharacterInput()
         {
-            if (isDead) return;
-            if (CharacterSwitcher.Instance != null)
+            // CharacterSwitcher.Instance は BicolorWitch.Player 名前空間にあると仮定
+            if (Player.CharacterSwitcher.Instance != null)
             {
-                if (!CharacterSwitcher.Instance.TrySwitchCharacter())
+                if (!Player.CharacterSwitcher.Instance.TrySwitchCharacter())
                 {
                     Debug.LogWarning("キャラクター切り替えに失敗しました。HPが0のキャラクターには切り替えできません。", this);
                 }
             }
         }
 
-        /// <summary>
-        /// 魔法スロット1の使用入力を処理する。
-        /// </summary>
-        private void HandleMagicInput1()
+        private void HandleMagic1Input()
         {
-            if (isDead) return;
-            if (Magic.MagicSystem.Instance != null)
+            if (MagicSystem.Instance != null)
             {
-                if (!Magic.MagicSystem.Instance.TryCastMagic(1))
-                {
-                    Debug.LogWarning("魔法スロット1の発動に失敗しました。", this);
-                }
+                MagicSystem.Instance.TryCastMagic(1);
             }
         }
 
-        /// <summary>
-        /// 魔法スロット2の使用入力を処理する。
-        /// </summary>
-        private void HandleMagicInput2()
+        private void HandleMagic2Input()
         {
-            if (isDead) return;
-            if (Magic.MagicSystem.Instance != null)
+            if (MagicSystem.Instance != null)
             {
-                if (!Magic.MagicSystem.Instance.TryCastMagic(2))
-                {
-                    Debug.LogWarning("魔法スロット2の発動に失敗しました。", this);
-                }
+                MagicSystem.Instance.TryCastMagic(2);
             }
         }
 
-        /// <summary>
-        /// ダッシュ開始入力を処理する。
-        /// </summary>
         private void HandleDashInputStart()
         {
-            if (isDead) return;
-            if (currentDashCooldown < maxDashCooldown) // クールタイムが満タンでなければダッシュ可能
+            if (currentDashCooldown < maxDashCooldown)
             {
                 isDashing = true;
             }
-            else
+        }
+
+        private void HandleDashInputEnd()
+        {
+            isDashing = false;
+        }
+
+        private void Awake()
+        {
+            rb = GetComponent<Rigidbody2D>();
+            animator = GetComponent<Animator>();
+
+            if (GManager.Instance == null)
             {
-                Debug.Log("ダッシュクールタイムが最大のため、ダッシュできません。", this);
+                Debug.LogError("GManager.Instanceが見つかりません。", this);
+                enabled = false;
+                return;
             }
         }
 
-        /// <summary>
-        /// ダッシュ終了入力を処理する。
-        /// </summary>
-        private void HandleDashInputEnd()
+        private void OnEnable()
         {
-            if (isDead) return;
-            isDashing = false;
+            if (InputManagement.InputManager.Instance != null)
+            {
+                InputManager.Instance.OnMoveInput += HandleMoveInput;
+                InputManager.Instance.OnJumpInput += HandleJumpInput;
+                InputManager.Instance.OnBasicAttackInput += HandleBasicAttackInput;
+                InputManager.Instance.OnSwitchCharacterInput += HandleSwitchCharacterInput;
+                InputManager.Instance.OnMagicInput1 += HandleMagic1Input;
+                InputManager.Instance.OnMagicInput2 += HandleMagic2Input;
+                InputManager.Instance.OnDashInputStart += HandleDashInputStart;
+                InputManager.Instance.OnDashInputEnd += HandleDashInputEnd;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (InputManager.Instance != null)
+            {
+                InputManager.Instance.OnMoveInput -= HandleMoveInput;
+                InputManager.Instance.OnJumpInput -= HandleJumpInput;
+                InputManager.Instance.OnBasicAttackInput -= HandleBasicAttackInput;
+                InputManager.Instance.OnSwitchCharacterInput -= HandleSwitchCharacterInput;
+                InputManager.Instance.OnMagicInput1 -= HandleMagic1Input;
+                InputManager.Instance.OnMagicInput2 -= HandleMagic2Input;
+                InputManager.Instance.OnDashInputStart -= HandleDashInputStart;
+                InputManager.Instance.OnDashInputEnd -= HandleDashInputEnd;
+            }
+        }
+
+        private void Start()
+        {
+            OnDashCooldownChanged?.Invoke(currentDashCooldown, maxDashCooldown);
+        }
+
+        private void Update()
+        {
+            if (isDead || GManager.Instance.currentGameState != GManager.GameState.Playing) return;
+
+            CheckGroundStatus();
+            UpdateBasicAttackCooldown();
+            UpdateDashCooldown();
+            ApplyMovement();
+            UpdateAnimation();
+            CheckFallForGameOver();
+
+            if (Player.CharacterSwitcher.Instance != null && Player.CharacterSwitcher.Instance.AreAllCharactersDead)
+            {
+                TriggerGameOver();
+            }
         }
 
         /// <summary>
@@ -324,9 +204,6 @@ namespace BicolorWitch.Player
             Vector2 rayOrigin = (Vector2)transform.position + groundCheckOffset;
             RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.down, groundCheckDistance, groundLayer);
             isGrounded = hit.collider != null;
-
-            // デバッグ用
-            // Debug.DrawRay(rayOrigin, Vector2.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
         }
 
         /// <summary>
@@ -337,7 +214,6 @@ namespace BicolorWitch.Player
             float speed = isDashing && currentDashCooldown < maxDashCooldown ? dashSpeed : moveSpeed;
             rb.linearVelocity = new Vector2(currentMoveInput * speed, rb.linearVelocity.y);
 
-            // プレイヤーの向きを反転
             if (currentMoveInput != 0)
             {
                 transform.localScale = new Vector3(Mathf.Sign(currentMoveInput), 1, 1);
@@ -364,24 +240,21 @@ namespace BicolorWitch.Player
         /// </summary>
         private void UpdateDashCooldown()
         {
-            if (isDashing && currentMoveInput != 0) // ダッシュ中で横移動している場合
+            if (isDashing && currentDashCooldown < maxDashCooldown)
             {
                 currentDashCooldown += Time.deltaTime * dashCooldownIncreaseRate;
-                if (currentDashCooldown >= maxDashCooldown)
-                {
-                    currentDashCooldown = maxDashCooldown;
-                    isDashing = false; // クールタイムが満タンになったらダッシュを強制終了
-                }
+                currentDashCooldown = Mathf.Min(currentDashCooldown, maxDashCooldown);
             }
-            else // ダッシュしていない、または横移動していない場合
+            else if (!isDashing && currentDashCooldown > 0)
             {
                 currentDashCooldown -= Time.deltaTime * dashCooldownRecoveryRate;
-                if (currentDashCooldown < 0f)
-                {
-                    currentDashCooldown = 0f;
-                }
+                currentDashCooldown = Mathf.Max(currentDashCooldown, 0f);
             }
-            currentDashCooldown = Mathf.Clamp(currentDashCooldown, 0f, maxDashCooldown);
+            // UI.UIManager.Instance は BicolorWitch.UI 名前空間にあると仮定
+            if (UI.UIManager.Instance != null && Player.CharacterSwitcher.Instance != null)
+            {
+                UI.UIManager.Instance.UpdateDashCooldown(Player.CharacterSwitcher.Instance.GetActiveCharacterType(), currentDashCooldown, maxDashCooldown);
+            }
             OnDashCooldownChanged?.Invoke(currentDashCooldown, maxDashCooldown);
         }
 
@@ -390,71 +263,48 @@ namespace BicolorWitch.Player
         /// </summary>
         private void UpdateAnimation()
         {
-            animator.SetFloat(ANIM_PARAM_SPEED, Mathf.Abs(rb.linearVelocity.x));
-            // ジャンプアニメーションはTriggerで制御するため、ここでは速度による制御は行わない。
-            // 地面に着地した際にisGroundedがtrueになり、AnimatorのTransitionでIdle/Runに戻ることを想定。
+            animator.SetFloat(ANIM_PARAM_SPEED, Mathf.Abs(currentMoveInput));
         }
 
         /// <summary>
-        /// 落下によるゲームオーバー判定を行う。
+        /// プレイヤーが落下しすぎた場合にゲームオーバーをトリガーする。
         /// </summary>
         private void CheckFallForGameOver()
         {
-            if (transform.position.y < fallThresholdY&& GManager.Instance.currentGameState == GManager.GameState.Playing)
+            if (transform.position.y < fallThresholdY)
             {
                 TriggerGameOver();
             }
         }
 
         /// <summary>
-        /// ゲームオーバーを通知する。
+        /// ゲームオーバー処理をトリガーする。
         /// </summary>
         private void TriggerGameOver()
         {
-            if (isDead) return; // 既に死亡状態なら重複して通知しない
-
-            isDead = true; // PlayerControllerを死亡状態にする
-            animator.SetTrigger(ANIM_PARAM_DEAD); // 死亡アニメーションを再生
-            // 物理挙動を停止させるなど、死亡時の処理を追加
-            rb.linearVelocity = Vector2.zero;
-            rb.bodyType = RigidbodyType2D.Kinematic; // 物理演算を停止
-            enabled = false; // スクリプトを無効化し、操作を受け付けないようにする
-
-            OnGameOverEvent?.Invoke(); // ゲームオーバーイベントを発火
-            Debug.Log("ゲームオーバー！ (落下または全キャラクター死亡)", this);
+            if (!isDead)
+            {
+                isDead = true;
+                animator.SetTrigger(ANIM_PARAM_DEAD);
+                Debug.Log("PlayerController: ゲームオーバー！", this);
+                GManager.Instance?.GameOver();
+                enabled = false;
+            }
         }
 
         /// <summary>
-        /// プレイヤーの状態をリセットする。
-        /// ステージ開始時などに外部から呼び出されることを想定。
+        /// プレイヤーをリセットする。
         /// </summary>
-        public void ResetPlayerState()
+        public void ResetPlayer()
         {
             isDead = false;
+            currentDashCooldown = 0f;
             canBasicAttack = true;
             basicAttackTimer = 0f;
-            currentMoveInput = 0f;
             isDashing = false;
-            currentDashCooldown = 0f;
-            OnDashCooldownChanged?.Invoke(currentDashCooldown, maxDashCooldown); // クールタイムUIをリセット
-            rb.bodyType = RigidbodyType2D.Dynamic; // 物理演算を再開
-            enabled = true; // スクリプトを有効化
-            // Animatorの状態もリセットする必要があるが、これはAnimator Controllerの設定に依存するため、
-            // 必要に応じて外部からAnimator.Play("Idle")などを呼び出すことを想定。
-            // または、AnimatorのResetTriggerなどを利用する。
-            animator.ResetTrigger(ANIM_PARAM_JUMP);
-            animator.ResetTrigger(ANIM_PARAM_ATTACK);
-            animator.ResetTrigger(ANIM_PARAM_DEAD);
-            animator.SetFloat(ANIM_PARAM_SPEED, 0f);
-        }
-
-        // エラー対策：Destroy済みオブジェクトへのアクセス防止
-        private void OnDestroy()
-        {
-            OnDisable(); // イベント購読解除を確実に行う
-            // イベント購読解除はOnDisableで十分だが、念のため
-            OnGameOverEvent = null; // イベントリスナーをクリア
-            OnDashCooldownChanged = null; // イベントリスナーをクリア
+            enabled = true;
+            animator.SetTrigger("Reset");
+            OnDashCooldownChanged?.Invoke(currentDashCooldown, maxDashCooldown);
         }
     }
 }

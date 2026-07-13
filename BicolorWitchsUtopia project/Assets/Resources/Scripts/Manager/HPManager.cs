@@ -64,7 +64,7 @@ namespace BicolorWitch.Game
     /// </summary>
     public class HPManager : MonoBehaviour, IHPManager
     {
-        public static HPManager Instance = null;
+        public static HPManager Instance { get; private set; }
         [Header("HP設定")]
         [SerializeField, Tooltip("T型キャラクターのHPデータ")]
         public CharacterHPData tCharacterHPData;
@@ -105,7 +105,7 @@ namespace BicolorWitch.Game
             // 落下によるゲームオーバー判定はStageManagerで行うため、ここでは削除
 
             // 両方のキャラクターが死亡した場合のゲームオーバー判定
-            if (GManager.Instance.currentGameState==GManager.GameState.Playing&& CharacterSwitcher.Instance.AreAllCharactersDead)
+            if (GManager.Instance != null && GManager.Instance.currentGameState == GManager.GameState.Playing && CharacterSwitcher.Instance != null && CharacterSwitcher.Instance.AreAllCharactersDead)
             {
                 GManager.Instance.GameOver();
             }
