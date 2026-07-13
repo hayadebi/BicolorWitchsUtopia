@@ -56,6 +56,11 @@ namespace BicolorWitch.Game
         /// </summary>
         void ShowStageClearUI();
 
+        void ShowTitleUI();
+        void ShowStageSelectUI();
+        void HideAllGameUIs();
+        void ShowPauseUI();
+
         /// <summary>
         /// キャラクターのダッシュクールタイムを更新する。
         /// </summary>

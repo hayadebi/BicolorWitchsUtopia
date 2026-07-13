@@ -138,7 +138,7 @@ namespace BicolorWitch.Game
 
         private ICharacterSwitcher characterSwitcher;
         private IUIManager uiManager;
-        private IGameManager gameManager;
+        private IGManager gameManager;
 
         // IHPManagerの実装
         public event Action<CharacterType, int, int> OnHPChanged;
@@ -162,13 +162,13 @@ namespace BicolorWitch.Game
             }
             uiManager = uiManagerMono as IUIManager;
 
-            if (gameManagerMono == null || !(gameManagerMono is IGameManager))
+            if (gameManagerMono == null || !(gameManagerMono is IGManager))
             {
-                Debug.LogError("GameManagerMonoが設定されていないか、IGameManagerを実装していません。", this);
+                Debug.LogError("GameManagerMonoが設定されていないか、IGManagerを実装していません。", this);
                 enabled = false;
                 return;
             }
-            gameManager = gameManagerMono as IGameManager;
+            gameManager = gameManagerMono as IGManager;
 
             // HPデータの初期化
             tCharacterHPData.Initialize();

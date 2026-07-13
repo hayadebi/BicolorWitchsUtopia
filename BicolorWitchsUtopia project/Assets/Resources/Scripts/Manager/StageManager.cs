@@ -47,7 +47,7 @@ namespace BicolorWitch.Game
 
         private IHPManager hpManager;
         private ICharacterSwitcher characterSwitcher;
-        private IGameManager gameManager;
+        private IGManager gameManager;
         private IUIManager uiManager;
 
         private bool isGameOver = false;
@@ -73,13 +73,13 @@ namespace BicolorWitch.Game
             }
             characterSwitcher = characterSwitcherMono as ICharacterSwitcher;
 
-            if (gameManagerMono == null || !(gameManagerMono is IGameManager))
+            if (gameManagerMono == null || !(gameManagerMono is IGManager))
             {
-                Debug.LogError("GameManagerMonoが設定されていないか、IGameManagerを実装していません。", this);
+                Debug.LogError("GameManagerMonoが設定されていないか、IGManagerを実装していません。", this);
                 // enabled = false; // GameManagerがないとゲームオーバー処理ができないため、エラーは出すがコンポーネントは無効化しない
                 // return;
             }
-            gameManager = gameManagerMono as IGameManager;
+            gameManager = gameManagerMono as IGManager;
 
             if (uiManagerMono == null || !(uiManagerMono is IUIManager))
             {

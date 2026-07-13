@@ -1,4 +1,4 @@
-// IGameManager.cs (依存関係のため同時生成)
+// IGManager.cs (依存関係のため同時生成)
 using BicolorWitch.Player;
 using System;
 
@@ -8,7 +8,7 @@ namespace BicolorWitch.Game
     /// ゲーム管理機能を提供するインターフェース。
     /// GameManagerが実装することを想定。
     /// </summary>
-    public interface IGameManager
+    public interface IGManager
     {
         /// <summary>
         /// ゲームオーバー処理を開始する。
