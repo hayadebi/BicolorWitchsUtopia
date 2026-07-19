@@ -6,6 +6,7 @@ using BicolorWitch.Core;
 using BicolorWitch.UI;
 using BicolorWitch.Manager;
 using BicolorWitch.Localization;
+using UnityEngine.UI;
 
 namespace BicolorWitch.Dialogue
 {
@@ -18,9 +19,9 @@ namespace BicolorWitch.Dialogue
 
         [Header("UI設定")]
         [SerializeField, Tooltip("会話テキストを表示するUIテキストコンポーネント")]
-        private TMPro.TextMeshProUGUI dialogueText;
+        private Text dialogueText;
         [SerializeField, Tooltip("話者名を表示するUIテキストコンポーネント")]
-        private TMPro.TextMeshProUGUI speakerNameText;
+        private Text speakerNameText;
         [SerializeField, Tooltip("会話UIのルートGameObject")]
         private GameObject dialoguePanel;
 
